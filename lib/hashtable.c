@@ -907,7 +907,7 @@ int himport_r(struct hsearch_data *htab,
 			printf("himport_r: can't insert \"%s=%s\" into hash table\n",
 				name, value);
 
-		debug("INSERT: table %p, filled %d/%d rv %p ==> name=\"%s\" value=\"%s\"\n",
+		debug("INSERT: table %p, filled %d/%d rv %p ==> name=\"%s\" value=\"%.128s\"\n",
 			htab, htab->filled, htab->size,
 			rv, name, value);
 	} while ((dp < data + size) && *dp);	/* size check needed for text */

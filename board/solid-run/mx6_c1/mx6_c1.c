@@ -1,5 +1,7 @@
 /*
  * Copyright (C) 2012 Freescale Semiconductor, Inc.
+ * Copyright (C) 2013 SolidRun ltd.
+ * Copyright (C) 2013 Jon Nettleton <jon.nettleton@gmail.com>.
  *
  * Author: Fabio Estevam <fabio.estevam@freescale.com>
  *

@@ -197,24 +197,7 @@ int board_eth_init(bd_t *bis)
 }
 #endif
 
-#if defined(CONFIG_VIDEO_IPUV3)
-static void enable_hdmi(void)
-{
-        struct hdmi_regs *hdmi  = (struct hdmi_regs *)HDMI_ARB_BASE_ADDR;
-        u8 reg;
-        reg = readb(&hdmi->phy_conf0);
-        reg |= HDMI_PHY_CONF0_PDZ_MASK;
-        writeb(reg, &hdmi->phy_conf0);
-
-        udelay(3000);
-        reg |= HDMI_PHY_CONF0_ENTMDS_MASK;
-        writeb(reg, &hdmi->phy_conf0);
-        udelay(3000);
-        reg |= HDMI_PHY_CONF0_GEN2_TXPWRON_MASK;
-        writeb(reg, &hdmi->phy_conf0);
-        writeb(HDMI_MC_PHYRSTZ_ASSERT, &hdmi->mc_phyrstz);
-}
-
+#ifdef CONFIG_VIDEO_IPUV3
 static struct fb_videomode const hdmi = {
         .name           = "HDMI",
         .refresh        = 60,
@@ -231,6 +214,12 @@ static struct fb_videomode const hdmi = {
         .vmode          = FB_VMODE_NONINTERLACED
 };
 
+static int detect_hdmi(void)
+{
+        struct hdmi_regs *hdmi  = (struct hdmi_regs *)HDMI_ARB_BASE_ADDR;
+        return readb(&hdmi->phy_stat0) & HDMI_DVI_STAT;
+}
+
 int board_video_skip(void)
 {
         int ret;
@@ -239,8 +228,9 @@ int board_video_skip(void)
 
         if (ret)
                 printf("HDMI cannot be configured: %d\n", ret);
-	
-	imx_enable_hdmi_phy();
+
+	if (detect_hdmi())
+		imx_enable_hdmi_phy();
 
         return ret;
 }
@@ -257,7 +247,6 @@ static void setup_display(void)
         reg |= (CHSCCDR_CLK_SEL_LDB_DI0
                 << MXC_CCM_CHSCCDR_IPU1_DI0_CLK_SEL_OFFSET);
         writel(reg, &mxc_ccm->chsccdr);
-
 }
 #endif /* CONFIG_VIDEO_IPUV3 */
 
@@ -272,9 +261,6 @@ int board_early_init_f(void)
 {
 	setup_iomux_uart();
 
-#if defined(CONFIG_VIDEO_IPUV3)
-        setup_display();
-#endif
 	return 0;
 }
 
@@ -292,6 +278,9 @@ int board_init(void)
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
 
+#ifdef CONFIG_VIDEO_IPUV3
+	setup_display();
+#endif
 	return 0;
 }
 

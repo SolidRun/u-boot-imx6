@@ -141,6 +141,7 @@
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"script=boot.scr\0" \
 	"uimage=uImage\0" \
+	"bootenv=uEnv.txt\0" \
 	"console=ttymxc0\0" \
 	"stdin=serial,usbkbd\0" \
 	"stdout=serial,vga\0" \
@@ -171,16 +172,39 @@
                 "fi\0" \
         "mmcargs=setenv bootargs console=${console},${baudrate} " \
                 "root=${mmcroot}\0" \
-        "loadbootscript=" \
+        "fatloadbootscript=" \
                 "fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
+        "ext2loadbootscript=" \
+                "ext2load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
         "bootscript=echo Running bootscript from mmc ...; " \
                 "source\0" \
-        "loaduimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${uimage}\0" \
-        "loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
-        "mmcboot=echo Booting from mmc ...; " \
+        "fatloadbootenv=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bootenv}\0" \
+        "fatloaduimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${uimage}\0" \
+        "fatloadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
+        "ext2loadbootenv=ext2load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bootenv}\0" \
+        "ext2loaduimage=ext2load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${uimage}\0" \
+        "ext2loadfdt=ext2load mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
+        "importbootenv=echo Importing environment from mmc${mmcdev} ...; " \
+                "env import -t ${loadaddr} ${filesize}\0" \
+        "fatmmcboot=echo Booting from mmc ...; " \
                 "run mmcargs; " \
                 "if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
-                        "if run loadfdt; then " \
+                        "if run fatloadfdt; then " \
+                                "bootm ${loadaddr} - ${fdt_addr}; " \
+                        "else " \
+                                "if test ${boot_fdt} = try; then " \
+                                        "bootm; " \
+                                "else " \
+                                        "echo WARN: Cannot load the DT; " \
+                                "fi; " \
+                        "fi; " \
+                "else " \
+                        "bootm; " \
+                "fi;\0" \
+        "ext2mmcboot=echo Booting from mmc ...; " \
+                "run mmcargs; " \
+                "if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
+                        "if run ext2loadfdt; then " \
                                 "bootm ${loadaddr} - ${fdt_addr}; " \
                         "else " \
                                 "if test ${boot_fdt} = try; then " \
@@ -219,11 +243,18 @@
 
 #define CONFIG_BOOTCOMMAND \
 	   "mmc dev ${mmcdev}; if mmc rescan; then " \
-		   "if run loadbootscript; then " \
+		   "if run ext2loadbootscript; then " \
+			   "run bootscript; " \
+		   "elif run fatloadbootscript; then " \
 			   "run bootscript; " \
 		   "else " \
-			   "if run loaduimage; then " \
-				   "run mmcboot; " \
+			   "if run ext2loadbootenv || run fatloadbootenv; then " \
+				   "run importbootenv; " \
+			   "fi; " \
+			   "if run ext2loaduimage; then " \
+				   "run ext2mmcboot; " \
+			   "elif run fatloaduimage; then " \
+				   "run fatmmcboot; " \
 			   "else run netboot; " \
 			   "fi; " \
 		   "fi; " \

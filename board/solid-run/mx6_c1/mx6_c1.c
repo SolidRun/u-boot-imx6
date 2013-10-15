@@ -36,6 +36,7 @@
 #include <miiphy.h>
 #include <netdev.h>
 #include <ipu_pixfmt.h>
+#include "../../../drivers/video/mxcfb.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -212,7 +213,7 @@ static struct fb_videomode const hdmi = {
         .lower_margin   = 7,
         .hsync_len      = 60,
         .vsync_len      = 10,
-        .sync           = FB_SYNC_EXT,
+        .sync           = FB_SYNC_EXT | FB_SYNC_CLK_LAT_FALL,
         .vmode          = FB_VMODE_NONINTERLACED
 };
 

@@ -103,6 +103,7 @@
 #define CONFIG_VIDEO_IPUV3
 #define CONFIG_IPUV3_CLK 260000000
 #define CONFIG_CFB_CONSOLE
+#define CONFIG_CFB_CONSOLE_ANSI
 #define CONFIG_VGA_AS_SINGLE_DEVICE
 #define CONFIG_VIDEO_BMP_RLE8
 #define CONFIG_IMX_HDMI
@@ -110,6 +111,7 @@
 #undef CONFIG_SPLASH_SCREEN
 #undef CONFIG_SPLASH_SCREEN_ALIGN
 #define CONFIG_BMP_16BPP
+#undef CONFIG_CMD_BMP
 #define CONFIG_VIDEO_LOGO
 #define CONFIG_VIDEO_BMP_LOGO
 #define CONFIG_CONSOLE_MUX
@@ -121,7 +123,7 @@
 #define CONFIG_CMD_FAT
 #define CONFIG_USB_EHCI
 #define CONFIG_USB_EHCI_MX6
-#define CONFIG_USB_KEYBOARD
+#define CONFIG_EHCI_IS_TDI
 #define CONFIG_USB_STORAGE
 #define CONFIG_USB_HOST_ETHER
 #define CONFIG_USB_ETHER_ASIX
@@ -129,15 +131,20 @@
 #define CONFIG_MXC_USB_PORT     1
 #define CONFIG_MXC_USB_PORTSC   (PORT_PTS_UTMI | PORT_PTS_PTW)
 #define CONFIG_MXC_USB_FLAGS    0
+#define CONFIG_USB_KEYBOARD
+#define CONFIG_SYS_USB_EVENT_POLL
+#define CONFIG_PREBOOT "usb start"
 #endif
 
 #define CONFIG_SYS_CONSOLE_IS_IN_ENV
-#define CONFIG_SYS_CONSOLE_OVERWRITE_ROUTINE
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"script=boot.scr\0" \
 	"uimage=uImage\0" \
 	"console=ttymxc0\0" \
+	"stdin=serial,usbkbd\0" \
+	"stdout=serial,vga\0" \
+	"stderr=serial,vga\0" \
 	"splashpos=m,m\0" \
 	"fdt_high=0xffffffff\0" \
 	"initrd_high=0xffffffff\0" \

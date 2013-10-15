@@ -264,16 +264,10 @@ int board_early_init_f(void)
 {
 	setup_iomux_uart();
 
+#ifdef CONFIG_VIDEO_IPUV3
+	setup_display();
+#endif
 	return 0;
-}
-
-/*
- * Do not overwrite the console
- * Use always serial for U-Boot console
- */
-int overwrite_console(void)
-{
-        return 1;
 }
 
 int board_init(void)
@@ -281,9 +275,6 @@ int board_init(void)
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
 
-#ifdef CONFIG_VIDEO_IPUV3
-	setup_display();
-#endif
 	return 0;
 }
 

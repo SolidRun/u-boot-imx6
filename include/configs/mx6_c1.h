@@ -140,7 +140,7 @@
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"script=boot.scr\0" \
-	"uimage=uImage\0" \
+	"bootfile=uImage\0" \
 	"bootenv=uEnv.txt\0" \
 	"console=ttymxc0\0" \
 	"stdin=serial,usbkbd\0" \
@@ -179,10 +179,10 @@
         "bootscript=echo Running bootscript from mmc ...; " \
                 "source\0" \
         "fatloadbootenv=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bootenv}\0" \
-        "fatloaduimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${uimage}\0" \
+        "fatloadbootfile=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bootfile}\0" \
         "fatloadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
         "ext2loadbootenv=ext2load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bootenv}\0" \
-        "ext2loaduimage=ext2load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${uimage}\0" \
+        "ext2loadbootfile=ext2load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bootfile}\0" \
         "ext2loadfdt=ext2load mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
         "importbootenv=echo Importing environment from mmc${mmcdev} ...; " \
                 "env import -t ${loadaddr} ${filesize}\0" \
@@ -190,31 +190,55 @@
                 "run mmcargs; " \
                 "if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
                         "if run fatloadfdt; then " \
-                                "bootm ${loadaddr} - ${fdt_addr}; " \
+                                "if test ${bootfile} = zImage; then " \
+                                	"bootz ${loadaddr} - ${fdt_addr}; " \
+                                "else " \
+                                	"bootm ${loadaddr} - ${fdt_addr}; " \
+                                "fi; " \
                         "else " \
                                 "if test ${boot_fdt} = try; then " \
-                                        "bootm; " \
+                                	"if test ${bootfile} = zImage; then " \
+                                		"bootz; " \
+                                	"else " \
+                                		"bootm; " \
+                                	"fi; " \
                                 "else " \
                                         "echo WARN: Cannot load the DT; " \
                                 "fi; " \
                         "fi; " \
                 "else " \
-                        "bootm; " \
+                        "if test ${bootfile} = zImage; then " \
+                        	"bootz; " \
+                        "else " \
+                        	"bootm; " \
+                        "fi; " \
                 "fi;\0" \
         "ext2mmcboot=echo Booting from mmc ...; " \
                 "run mmcargs; " \
                 "if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
                         "if run ext2loadfdt; then " \
-                                "bootm ${loadaddr} - ${fdt_addr}; " \
+                                "if test ${bootfile} = zImage; then " \
+                                	"bootz ${loadaddr} - ${fdt_addr}; " \
+                                "else " \
+                                	"bootm ${loadaddr} - ${fdt_addr}; " \
+                                "fi; " \
                         "else " \
                                 "if test ${boot_fdt} = try; then " \
-                                        "bootm; " \
+                                	"if test ${bootfile} = zImage; then " \
+                                		"bootz; " \
+                                	"else " \
+                                		"bootm; " \
+                                	"fi; " \
                                 "else " \
                                         "echo WARN: Cannot load the DT; " \
                                 "fi; " \
                         "fi; " \
                 "else " \
-                        "bootm; " \
+                        "if test ${bootfile} = zImage; then " \
+                        	"bootz; " \
+                        "else " \
+                        	"bootm; " \
+                        "fi; " \
                 "fi;\0" \
         "netargs=setenv bootargs console=${console},${baudrate} " \
                 "root=/dev/nfs " \
@@ -226,19 +250,31 @@
                 "else " \
                         "setenv get_cmd tftp; " \
                 "fi; " \
-                "${get_cmd} ${uimage}; " \
+                "${get_cmd} ${bootfile}; " \
                 "if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
                         "if ${get_cmd} ${fdt_addr} ${fdt_file}; then " \
-                                "bootm ${loadaddr} - ${fdt_addr}; " \
+                                "if test ${bootfile} = zImage; then " \
+                                	"bootz ${loadaddr} - ${fdt_addr}; " \
+                                "else " \
+                                	"bootm ${loadaddr} - ${fdt_addr}; " \
+                                "fi; " \
                         "else " \
                                 "if test ${boot_fdt} = try; then " \
-                                        "bootm; " \
+                                	"if test ${bootfile} = zImage; then " \
+                                		"bootz; " \
+                                	"else " \
+                                		"bootm; " \
+                                	"fi; " \
                                 "else " \
                                         "echo WARN: Cannot load the DT; " \
                                 "fi; " \
                         "fi; " \
                 "else " \
-                        "bootm; " \
+                        "if test ${bootfile} = zImage; then " \
+                        	"bootz; " \
+                        "else " \
+                        	"bootm; " \
+                        "fi; " \
                 "fi;\0"
 
 #define CONFIG_BOOTCOMMAND \
@@ -251,9 +287,9 @@
 			   "if run ext2loadbootenv || run fatloadbootenv; then " \
 				   "run importbootenv; " \
 			   "fi; " \
-			   "if run ext2loaduimage; then " \
+			   "if run ext2loadbootfile; then " \
 				   "run ext2mmcboot; " \
-			   "elif run fatloaduimage; then " \
+			   "elif run fatloadbootfile; then " \
 				   "run fatmmcboot; " \
 			   "else run netboot; " \
 			   "fi; " \

@@ -243,7 +243,12 @@
         "netargs=setenv bootargs console=${console},${baudrate} " \
                 "root=/dev/nfs " \
         "ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp\0" \
-                "netboot=echo Booting from net ...; " \
+        "netboot=echo Booting from net ...; " \
+                "if test ${bootfile} = zImage; then " \
+                        "setenv realfile zImage; " \
+                "else " \
+                        "setenv realfile uImage; " \
+                "fi; " \
                 "run netargs; " \
                 "if test ${ip_dyn} = yes; then " \
                         "setenv get_cmd dhcp; " \
@@ -253,7 +258,7 @@
                 "${get_cmd} ${bootfile}; " \
                 "if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
                         "if ${get_cmd} ${fdt_addr} ${fdt_file}; then " \
-                                "if test ${bootfile} = zImage; then " \
+                                "if test ${realfile} = zImage; then " \
                                 	"bootz ${loadaddr} - ${fdt_addr}; " \
                                 "else " \
                                 	"bootm ${loadaddr} - ${fdt_addr}; " \

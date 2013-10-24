@@ -3,7 +3,7 @@
  * Copyright (C) 2013 SolidRun ltd.
  * Copyright (C) 2013 Jon Nettleton <jon.nettleton@gmail.com>
  *
- * Configuration settings for the Wandboard.
+ * Configuration settings for the SolidRun carrier-1 (c1) board.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */

@@ -151,12 +151,18 @@ static void setup_iomux_enet(void)
 {
 	imx_iomux_v3_setup_multiple_pads(enet_pads, ARRAY_SIZE(enet_pads));
 
-	/* Reset AR8035 PHY */
+	/*
+	 * Reset AR8035 PHY. Since it runs 25MHz reference clock, it
+	 * requires two resets.
+	 */
 	gpio_direction_output(IMX_GPIO_NR(4, 15), 0);
-	udelay(1000 * 2);    /* Wait 2 ms before reset */
+	udelay(1000 * 2);
 	gpio_set_value(IMX_GPIO_NR(4, 15), 1);
-
-	udelay(100);
+	udelay(1000 * 2);
+	gpio_set_value(IMX_GPIO_NR(4, 15), 0);
+	udelay(1000 * 2);
+	gpio_set_value(IMX_GPIO_NR(4, 15), 1);
+	udelay(1000 * 2);
 }
 
 int board_phy_config(struct phy_device *phydev)
@@ -167,6 +173,35 @@ int board_phy_config(struct phy_device *phydev)
 	return 0;
 }
 
+int enable_fec_anatop_clock(void)
+{
+	u32 reg = 0;
+	s32 timeout = 100000;
+
+	struct anatop_regs __iomem *anatop =
+	(struct anatop_regs __iomem *)ANATOP_BASE_ADDR;
+
+	reg = readl(&anatop->pll_enet);
+	reg &= 0xfffffffc; /* Set PLL to generate 25MHz */
+	writel(reg, &anatop->pll_enet);
+	if ((reg & BM_ANADIG_PLL_ENET_POWERDOWN) ||
+	    (!(reg & BM_ANADIG_PLL_ENET_LOCK))) {
+		reg &= ~BM_ANADIG_PLL_ENET_POWERDOWN;
+		writel(reg, &anatop->pll_enet);
+		while (timeout--) {
+			if (readl(&anatop->pll_enet) & BM_ANADIG_PLL_ENET_LOCK)
+				break;
+		}
+		if (timeout < 0)
+			return -ETIMEDOUT;
+	}
+	/* Enable FEC clock */
+	reg |= BM_ANADIG_PLL_ENET_ENABLE;
+	reg &= ~BM_ANADIG_PLL_ENET_BYPASS;
+	writel(reg, &anatop->pll_enet);
+
+	return 0;
+}
 int board_eth_init(bd_t *bis)
 {
 	int ret;
@@ -177,12 +212,9 @@ int board_eth_init(bd_t *bis)
 	u32 reg = 0;
 	s32 timeout = 100000;
 
-     	reg = readl(&anatop->pll_enet);
-	reg |= 0x00002000;
-	writel(reg, &anatop->pll_enet);
-
-	/* clear gpr1[21] */
-        clrsetbits_le32(&iomuxc_regs->gpr[1], (1 << 21), 1);
+	enable_fec_anatop_clock();
+	/* set gpr1[21] */
+        clrsetbits_le32(&iomuxc_regs->gpr[1], 0, (1 << 21));
 
 	while (timeout--) {
         	if (readl(&anatop->pll_enet) & BM_ANADIG_PLL_ENET_LOCK)

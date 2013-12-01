@@ -57,7 +57,7 @@
 
 #define CONFIG_CMD_BMODE
 #define CONFIG_CMD_SETEXPR
-
+#define CONFIG_CMD_MEMTEST
 #define CONFIG_BOOTDELAY		3
 
 #define CONFIG_SYS_MEMTEST_START	0x10000000
@@ -151,7 +151,6 @@
 	"initrd_high=0xffffffff\0" \
 	"fdt_addr=0x11000000\0" \
 	"boot_fdt=no\0" \
-	"ethaddr=d0:63:00:00:00:00\0" \
         "ip_dyn=yes\0" \
         "mmcdev=" __stringify(CONFIG_SYS_MMC_ENV_DEV) "\0" \
         "mmcpart=1\0" \

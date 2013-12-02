@@ -65,6 +65,8 @@ DECLARE_GLOBAL_DATA_PTR;
 #define ENET_PAD_CTRL_CLK  (PAD_CTL_PUS_100K_UP & ~PAD_CTL_PKE | \
 	PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | PAD_CTL_SRE_FAST)
 
+#define LED IMX_GPIO_NR(4, 29)
+
 int dram_init(void)
 {
 	gd->ram_size = ((phys_size_t)CONFIG_DDR_MB * 1024 * 1024);
@@ -301,11 +303,16 @@ int board_early_init_f(void)
 	return 0;
 }
 
+iomux_v3_cfg_t const led_pads[] = {
+	MX6_PAD_DISP0_DAT8__GPIO_4_29 | MUX_PAD_CTRL(UART_PAD_CTRL),
+};
+
 int board_init(void)
 {
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
-
+	/* Enable front LED */
+	gpio_direction_output(LED, 0);
 	return 0;
 }
 

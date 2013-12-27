@@ -102,8 +102,7 @@ static u32 decode_pll(enum pll_clocks pll, u32 infreq)
 }
 static u32 mxc_get_pll_pfd(enum pll_clocks pll, int pfd_num)
 {
-	u32 div;
-	u64 freq;
+	u32 div, freq;
 
 	switch (pll) {
 	case PLL_BUS:
@@ -112,11 +111,11 @@ static u32 mxc_get_pll_pfd(enum pll_clocks pll, int pfd_num)
 			return 0;
 		}
 		div = __raw_readl(&imx_ccm->analog_pfd_528);
-		freq = (u64)decode_pll(PLL_BUS, MXC_HCLK);
+		freq = decode_pll(PLL_BUS, MXC_HCLK);
 		break;
 	case PLL_USBOTG:
 		div = __raw_readl(&imx_ccm->analog_pfd_480);
-		freq = (u64)decode_pll(PLL_USBOTG, MXC_HCLK);
+		freq = decode_pll(PLL_USBOTG, MXC_HCLK);
 		break;
 	default:
 		/* No PFD on other PLL					     */

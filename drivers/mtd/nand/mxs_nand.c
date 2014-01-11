@@ -1014,9 +1014,12 @@ static int mxs_nand_scan_bbt(struct mtd_info *mtd)
 		nand_info->hooked_block_markbad = mtd->_block_markbad;
 		mtd->_block_markbad = mxs_nand_hook_block_markbad;
 	}
-
+	#ifdef CONFIG_SPL_BUILD
+	return 0;
+	#else
 	/* We use the reference implementation for bad block management. */
 	return nand_default_bbt(mtd);
+	#endif
 }
 
 /*

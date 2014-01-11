@@ -7,6 +7,10 @@
 #ifndef __ASM_ARCH_MX6_IMX_REGS_H__
 #define __ASM_ARCH_MX6_IMX_REGS_H__
 
+#define __REG(x)        (*((volatile u32 *)(x)))
+#define __REG16(x)      (*((volatile u16 *)(x)))
+#define __REG8(x)       (*((volatile u8 *)(x)))
+
 #define ARCH_MXC
 
 #define CONFIG_SYS_CACHELINE_SIZE	32

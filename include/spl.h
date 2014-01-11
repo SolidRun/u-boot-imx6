@@ -15,6 +15,10 @@
 #define MMCSD_MODE_UNDEFINED	0
 #define MMCSD_MODE_RAW		1
 #define MMCSD_MODE_FAT		2
+#define MMCSD_MODE		3
+#define SATA_MODE		4
+ 
+
 
 struct spl_image_info {
 	const char *name;
@@ -59,6 +63,9 @@ void spl_spi_load_image(void);
 
 /* Ethernet SPL functions */
 void spl_net_load_image(const char *device);
+
+/* SATA SPL functions */
+void spl_sata_load_image(void);
 
 #ifdef CONFIG_SPL_BOARD_INIT
 void spl_board_init(void);

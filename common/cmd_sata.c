@@ -15,7 +15,7 @@
 #include <part.h>
 #include <sata.h>
 
-static int sata_curr_device = -1;
+int sata_curr_device = -1;
 block_dev_desc_t sata_dev_desc[CONFIG_SYS_SATA_MAX_DEVICE];
 
 int __sata_initialize(void)

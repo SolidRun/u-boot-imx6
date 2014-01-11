@@ -287,6 +287,17 @@ static void setup_display(void)
 #endif /* CONFIG_VIDEO_IPUV3 */
 
 #ifdef CONFIG_USB_EHCI_MX6
+
+#define USB_OTG_EN IMX_GPIO_NR(3, 22)
+#define USB_H1_EN IMX_GPIO_NR(1, 0)
+iomux_v3_cfg_t const usb_en_pads[] = {
+	MX6_PAD_EIM_D22__GPIO_3_22 | MUX_PAD_CTRL(UART_PAD_CTRL),
+	MX6_PAD_GPIO_0__GPIO_1_0 | MUX_PAD_CTRL(UART_PAD_CTRL),
+};
+iomux_v3_cfg_t const usb_id_pad[] = {
+	MX6_PAD_GPIO_1__USB_OTG_ID,
+};
+
 int board_ehci_hcd_init(int port)
 {
         return 0;
@@ -299,6 +310,15 @@ int board_early_init_f(void)
 
 #ifdef CONFIG_VIDEO_IPUV3
 	setup_display();
+#endif
+#ifdef CONFIG_USB_EHCI_MX6
+	/* Setup USB OTG ID */
+	imx_iomux_v3_setup_multiple_pads(usb_id_pad, ARRAY_SIZE(usb_id_pad));
+	/* Setup enable pads */
+	imx_iomux_v3_setup_multiple_pads(usb_en_pads, ARRAY_SIZE(usb_en_pads));
+	/* Enable USB OTG and H1 current limiter */
+	gpio_direction_output(USB_OTG_EN, 1);
+	gpio_direction_output(USB_H1_EN, 1);
 #endif
 	return 0;
 }

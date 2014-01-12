@@ -24,8 +24,6 @@
 #define CONFIG_DISPLAY_CPUINFO
 #define CONFIG_DISPLAY_BOARDINFO
 
-#define CONFIG_MACH_TYPE		4821
-
 #define CONFIG_CMDLINE_TAG
 #define CONFIG_SETUP_MEMORY_TAGS
 #define CONFIG_INITRD_TAG
@@ -315,12 +313,17 @@
 /* Miscellaneous configurable options */
 #define CONFIG_SYS_LONGHELP
 #define CONFIG_SYS_HUSH_PARSER
-#define CONFIG_SYS_PROMPT	       "CuBox-i U-Boot > "
+
+#ifndef __ASSEMBLY__
+extern char *config_sys_prompt;
+#endif
+#define CONFIG_SYS_PROMPT_MAX_CHARS	32
+#define CONFIG_SYS_PROMPT		config_sys_prompt
 #define CONFIG_AUTO_COMPLETE
 #define CONFIG_SYS_CBSIZE		1024
 
 /* Print Buffer Size */
-#define CONFIG_SYS_PBSIZE (CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16)
+#define CONFIG_SYS_PBSIZE (CONFIG_SYS_CBSIZE + CONFIG_SYS_PROMPT_MAX_CHARS + 16)
 #define CONFIG_SYS_MAXARGS	       16
 #define CONFIG_SYS_BARGSIZE CONFIG_SYS_CBSIZE
 

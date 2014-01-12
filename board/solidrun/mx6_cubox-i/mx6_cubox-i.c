@@ -73,6 +73,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define LED IMX_GPIO_NR(4, 29)
 
+int hb_cuboxi_ = 0; /* 1 is HummingBoard, 0 is CuBox-i */
 int dram_init(void)
 {
 	uint cpurev, imxtype;
@@ -121,6 +122,10 @@ iomux_v3_cfg_t const usdhc2_pads[] = {
 	MX6_PAD_SD2_DAT3__USDHC2_DAT3	| MUX_PAD_CTRL(USDHC_PAD_CTRL),
         MX6_PAD_GPIO_4__USDHC2_CD       | MUX_PAD_CTRL(USDHC_PAD_GPIO_CTRL),
 };
+iomux_v3_cfg_t const key_row1[] = {
+	/* Following is only for sensing if it's CuBox-i or HummingBoard */
+	MX6_PAD_KEY_ROW1__GPIO_4_9      | MUX_PAD_CTRL(UART_PAD_CTRL),
+}
 #endif
 
 static void setup_iomux_uart(void)
@@ -384,10 +389,33 @@ int board_ehci_hcd_init(int port)
 }
 #endif
 
+char config_sys_prompt_cuboxi[] = "CuBox-i U-Boot > ";
+char config_sys_prompt_hummingboard[] = "HummingBoard U-Boot > ";
+char *config_sys_prompt = config_sys_prompt_cuboxi;
+static void detect_board(void)
+{
+	int val;
+#if defined(CONFIG_MX6Q) || defined(CONFIG_MX6DL)
+	imx_iomux_v3_setup_multiple_pads(key_row1, ARRAY_SIZE(key_row1));
+#endif
+#if defined(CONFIG_MX6QDL)
+	MX6QDL_SET_PAD(PAD_KEY_ROW1__GPIO_4_9, MUX_PAD_CTRL(UART_PAD_CTRL));
+#endif
+        gpio_direction_input(IMX_GPIO_NR(4, 9));
+	val = gpio_get_value(IMX_GPIO_NR(4, 9));
+	if (val == 0) {
+		hb_cuboxi_ = 0;
+		config_sys_prompt = config_sys_prompt_cuboxi;
+	} else {
+		hb_cuboxi_ = 1;
+		config_sys_prompt = config_sys_prompt_hummingboard;
+	}
+}
+
 int board_early_init_f(void)
 {
 	setup_iomux_uart();
-
+	detect_board();
 #ifdef CONFIG_VIDEO_IPUV3
 	setup_display();
 #endif
@@ -419,8 +447,18 @@ int board_init(void)
 {
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
-	/* Enable front LED */
-	gpio_direction_output(LED, 0);
+	/*
+	 * The reason hb_cuboxi_ is not checked here is because it seems to be
+	 * overwritten somewhere, somehow
+	 */
+
+	if (config_sys_prompt == config_sys_prompt_cuboxi) {
+		gd->bd->bi_arch_number = 4821; /* CuBox-i machine ID */
+		/* Enable front LED */
+		gpio_direction_output(LED, 0);
+	} else {
+		gd->bd->bi_arch_number = 4773; /* HummingBoard machine ID */
+	}
 	return 0;
 }
 
@@ -428,8 +466,13 @@ static char const *board_type = "uninitialized";
 
 int checkboard(void)
 {
-	puts("Board: MX6-CuBox-i\n");
-	board_type = "mx6-cubox-i";
+	if (hb_cuboxi_ == 0) {
+		puts("Board: MX6-CuBox-i\n");
+		board_type = "mx6-cubox-i";
+	} else {
+		puts("Board: MX6-HummingBoard\n");
+		board_type = "mx6-hummingboard";
+	}
 	return 0;
 }
 

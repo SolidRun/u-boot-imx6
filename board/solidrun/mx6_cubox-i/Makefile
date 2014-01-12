@@ -24,7 +24,7 @@ include $(TOPDIR)/config.mk
 
 LIB    = $(obj)lib$(BOARD).o
 
-COBJS  := mx6_cubox-i.o
+COBJS  := mx6_cubox-i.o mx6_cubox-i_spl.o
 
 SRCS   := $(COBJS:.o=.c)
 OBJS   := $(addprefix $(obj),$(COBJS))

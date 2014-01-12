@@ -16,6 +16,8 @@
 #include <asm/imx-common/gpio.h>
 #include <asm/sizes.h>
 
+#include "imx6_spl.h"
+
 #undef DEBUG
 
 #define CONFIG_MX6
@@ -64,7 +66,17 @@
 #define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_MEMTEST_START + 500 * SZ_1M)
 
 #define CONFIG_LOADADDR			0x10800000
-#define CONFIG_SYS_TEXT_BASE		0x27800000
+/* #define CONFIG_SYS_TEXT_BASE		0x27800000 */
+
+/* SATA Configuration */
+#ifdef CONFIG_CMD_SATA
+#define CONFIG_DWC_AHSATA
+#define CONFIG_SYS_SATA_MAX_DEVICE      1
+#define CONFIG_DWC_AHSATA_PORT_ID       0
+#define CONFIG_DWC_AHSATA_BASE_ADDR     SATA_ARB_BASE_ADDR
+#define CONFIG_LBA48
+#define CONFIG_LIBATA
+#endif
 
 /* MMC Configuration */
 #define CONFIG_FSL_ESDHC

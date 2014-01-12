@@ -208,13 +208,15 @@ void spl_mmc_load_image(void)
 	}
 #endif
 
-	printf("Load image from RAW...\n");
-#ifdef CONFIG_SPL_OS_BOOT
-	if (spl_start_uboot() || mmc_load_image_raw_os(mmc))
-#endif
-	err = mmc_load_image_raw(mmc, CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR);
 	if (err) {
-		printf("spl: wrong MMC boot mode\n");
-		hang();
+		printf("Load image from RAW...\n");
+#ifdef CONFIG_SPL_OS_BOOT
+		if (spl_start_uboot() || mmc_load_image_raw_os(mmc))
+#endif
+		err = mmc_load_image_raw(mmc, CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR);
+		if (err) {
+			printf("spl: wrong MMC boot mode\n");
+			hang();
+		}
 	}
 }

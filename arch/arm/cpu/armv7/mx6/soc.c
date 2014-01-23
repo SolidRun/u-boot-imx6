@@ -131,11 +131,42 @@ static void imx_set_wdog_powerdown(bool enable)
 	writew(enable, &wdog2->wmcr);
 }
 
+static void set_ahb_rate(u32 val)
+{
+	struct mxc_ccm_reg *mxc_ccm = (struct mxc_ccm_reg *)CCM_BASE_ADDR;
+	u32 reg, div;
+
+	div = get_periph_clk() / val - 1;
+	reg = readl(&mxc_ccm->cbcdr);
+
+	writel((reg & (~MXC_CCM_CBCDR_AHB_PODF_MASK)) |
+		(div << MXC_CCM_CBCDR_AHB_PODF_OFFSET), &mxc_ccm->cbcdr);
+}
+
+static void clear_mmdc_ch_mask(void)
+{
+	struct mxc_ccm_reg *mxc_ccm = (struct mxc_ccm_reg *)CCM_BASE_ADDR;
+
+	/* Clear MMDC channel mask */
+	writel(0, &mxc_ccm->ccdr);
+}
+
 int arch_cpu_init(void)
 {
 	init_aips();
 
 	set_vddsoc(1200);	/* Set VDDSOC to 1.2V */
+
+	/* Need to clear MMDC_CHx_MASK to make warm reset work. */
+	clear_mmdc_ch_mask();
+
+	/*
+	 * When low freq boot is enabled, ROM will not set AHB
+	 * freq, so we need to ensure AHB freq is 132MHz in such
+	 * scenario.
+	 */
+	if (mxc_get_clock(MXC_ARM_CLK) == 396000000)
+		set_ahb_rate(132000000);
 
 	imx_set_wdog_powerdown(false); /* Disable PDE bit of WMCR register */
 

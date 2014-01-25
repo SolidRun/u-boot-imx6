@@ -236,6 +236,8 @@ static void setup_iomux_enet(void)
 	MX6QDL_SET_PAD(PAD_RGMII_RD2__ENET_RGMII_RD2, MUX_PAD_CTRL(ENET_PAD_CTRL));
 	MX6QDL_SET_PAD(PAD_RGMII_RD3__ENET_RGMII_RD3, MUX_PAD_CTRL(ENET_PAD_CTRL));
 	MX6QDL_SET_PAD(PAD_RGMII_RX_CTL__RGMII_RX_CTL, MUX_PAD_CTRL(ENET_PAD_CTRL_PD));
+	MX6QDL_SET_PAD(PAD_ENET_RXD0__GPIO_1_27, MUX_PAD_CTRL(ENET_PAD_CTRL_PD));
+	MX6QDL_SET_PAD(PAD_ENET_RXD1__GPIO_1_26, MUX_PAD_CTRL(ENET_PAD_CTRL_PD));
 #endif
 	/*
 	 * Reset AR8035 PHY. Since it runs 25MHz reference clock, it
@@ -253,7 +255,7 @@ static void setup_iomux_enet(void)
 int fecmxc_initialize(bd_t *bd)
 {
 	/*
-	 * Initialize the phy in address 0x0 or 0x4.
+	 * Initialize the phy in address 0x0 or 0x4 (0x11 phy mask).
 	 * The LED_ACT pin on the carrier-one boards had a pull down that
 	 * forces the phy address to 0x0; where on CuBox-i and the production
 	 * HummingBoard that pin is connected directly to LED that depending
@@ -261,8 +263,7 @@ int fecmxc_initialize(bd_t *bd)
 	 * as '0' or '1' thus the phy address might appear as either address
 	 * 0x0 or 0x4.
 	 */
-	if (fecmxc_initialize_multi(bd, -1, 0x0, IMX_FEC_BASE) == 0) return 0;
-	return fecmxc_initialize_multi(bd, -1, 0x4, IMX_FEC_BASE);
+	return fecmxc_initialize_multi(bd, -1, 0x11, IMX_FEC_BASE);
 }
 
 int board_phy_config(struct phy_device *phydev)

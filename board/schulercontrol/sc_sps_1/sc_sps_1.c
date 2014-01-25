@@ -79,13 +79,13 @@ int board_eth_init(bd_t *bis)
 		CLKCTRL_ENET_TIME_SEL_MASK,
 		CLKCTRL_ENET_TIME_SEL_RMII_CLK | CLKCTRL_ENET_CLK_OUT_EN);
 
-	ret = fecmxc_initialize_multi(bis, 0, 0, MXS_ENET0_BASE);
+	ret = fecmxc_initialize_multi(bis, 0, 1 << 0, MXS_ENET0_BASE);
 	if (ret) {
 		printf("FEC MXS: Unable to init FEC0\n");
 		return ret;
 	}
 
-	ret = fecmxc_initialize_multi(bis, 1, 1, MXS_ENET1_BASE);
+	ret = fecmxc_initialize_multi(bis, 1, 1 << 1, MXS_ENET1_BASE);
 	if (ret) {
 		printf("FEC MXS: Unable to init FEC1\n");
 		return ret;

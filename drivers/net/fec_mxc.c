@@ -1030,7 +1030,7 @@ struct mii_dev *fec_get_miibus(uint32_t base_addr, int dev_id)
 	return bus;
 }
 
-int fecmxc_initialize_multi(bd_t *bd, int dev_id, int phy_id, uint32_t addr)
+int fecmxc_initialize_multi(bd_t *bd, int dev_id, uint32_t phy_mask, uint32_t addr)
 {
 	uint32_t base_mii;
 	struct mii_dev *bus = NULL;
@@ -1048,12 +1048,12 @@ int fecmxc_initialize_multi(bd_t *bd, int dev_id, int phy_id, uint32_t addr)
 #else
 	base_mii = addr;
 #endif
-	debug("eth_init: fec_probe(bd, %i, %i) @ %08x\n", dev_id, phy_id, addr);
+	debug("eth_init: fec_probe(bd, 0x%x, %i) @ %08x\n", dev_id, phy_mask, addr);
 	bus = fec_get_miibus(base_mii, dev_id);
 	if (!bus)
 		return -ENOMEM;
 #ifdef CONFIG_PHYLIB
-	phydev = phy_find_by_mask(bus, 1 << phy_id, PHY_INTERFACE_MODE_RGMII);
+	phydev = phy_find_by_mask(bus, phy_mask, PHY_INTERFACE_MODE_RGMII);
 	if (!phydev) {
 		free(bus);
 		return -ENOMEM;
@@ -1074,7 +1074,7 @@ int fecmxc_initialize_multi(bd_t *bd, int dev_id, int phy_id, uint32_t addr)
 #ifdef CONFIG_FEC_MXC_PHYADDR
 int fecmxc_initialize(bd_t *bd)
 {
-	return fecmxc_initialize_multi(bd, -1, CONFIG_FEC_MXC_PHYADDR,
+	return fecmxc_initialize_multi(bd, -1, 1 << CONFIG_FEC_MXC_PHYADDR,
 			IMX_FEC_BASE);
 }
 #endif

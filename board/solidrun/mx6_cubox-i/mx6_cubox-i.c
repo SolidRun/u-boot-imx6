@@ -68,8 +68,8 @@ DECLARE_GLOBAL_DATA_PTR;
 #define ENET_PAD_CTRL_PD  (PAD_CTL_PUS_100K_DOWN |		\
 	PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | PAD_CTL_HYS)
 
-#define ENET_PAD_CTRL_CLK  (PAD_CTL_PUS_100K_UP & ~PAD_CTL_PKE | \
-	PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | PAD_CTL_SRE_FAST)
+#define ENET_PAD_CTRL_CLK  (PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | \
+	PAD_CTL_SRE_FAST)
 
 #define LED IMX_GPIO_NR(4, 29)
 
@@ -249,6 +249,20 @@ static void setup_iomux_enet(void)
 	udelay(1000 * 2);
 	gpio_set_value(IMX_GPIO_NR(4, 15), 1);
 	udelay(1000 * 2);
+}
+int fecmxc_initialize(bd_t *bd)
+{
+	/*
+	 * Initialize the phy in address 0x0 or 0x4.
+	 * The LED_ACT pin on the carrier-one boards had a pull down that
+	 * forces the phy address to 0x0; where on CuBox-i and the production
+	 * HummingBoard that pin is connected directly to LED that depending
+	 * on the pull down strength of the LED it might be sampled
+	 * as '0' or '1' thus the phy address might appear as either address
+	 * 0x0 or 0x4.
+	 */
+	if (fecmxc_initialize_multi(bd, -1, 0x0, IMX_FEC_BASE) == 0) return 0;
+	return fecmxc_initialize_multi(bd, -1, 0x4, IMX_FEC_BASE);
 }
 
 int board_phy_config(struct phy_device *phydev)

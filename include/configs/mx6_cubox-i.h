@@ -64,7 +64,7 @@
 #define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_MEMTEST_START + 500 * SZ_1M)
 
 #define CONFIG_LOADADDR			0x10800000
-/* #define CONFIG_SYS_TEXT_BASE		0x27800000 */
+/*#define CONFIG_SYS_TEXT_BASE		0x17800000*/
 
 /* SATA Configuration */
 #ifdef CONFIG_CMD_SATA
@@ -86,9 +86,12 @@
 #define CONFIG_CMD_MMC
 #define CONFIG_GENERIC_MMC
 #define CONFIG_BOUNCE_BUFFER
-#define CONFIG_CMD_EXT2
+#define CONFIG_CMD_EXT4
 #define CONFIG_CMD_FAT
 #define CONFIG_DOS_PARTITION
+#define CONFIG_FS_EXT4
+#define CONFIG_FS_FAT
+#define CONFIG_CMD_FS_GENERIC
 
 /* Ethernet Configuration */
 #define CONFIG_FEC_MXC
@@ -129,7 +132,6 @@
 /* USB Configs */
 #define CONFIG_CMD_USB
 #ifdef CONFIG_CMD_USB
-#define CONFIG_CMD_FAT
 #define CONFIG_USB_EHCI
 #define CONFIG_USB_EHCI_MX6
 #define CONFIG_EHCI_IS_TDI
@@ -148,18 +150,19 @@
 #define CONFIG_SYS_CONSOLE_IS_IN_ENV
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
-	"script=boot.scr\0" \
-	"bootfile=uImage\0" \
-	"bootenv=uEnv.txt\0" \
-	"console=ttymxc0\0" \
-	"stdin=serial,usbkbd\0" \
-	"stdout=serial,vga\0" \
-	"stderr=serial,vga\0" \
-	"splashpos=m,m\0" \
-	"fdt_high=0xffffffff\0" \
-	"initrd_high=0xffffffff\0" \
-	"fdt_addr=0x11000000\0" \
-	"boot_fdt=no\0" \
+        "script=boot.scr\0" \
+        "bootfile=auto\0" \
+        "bootenv=uEnv.txt\0" \
+        "boot_prefixes=/ /boot/\0" \
+        "console=ttymxc0\0" \
+        "stdin=serial,usbkbd\0" \
+        "stdout=serial,vga\0" \
+        "stderr=serial,vga\0" \
+        "splashpos=m,m\0" \
+        "fdt_high=0xffffffff\0" \
+        "initrd_high=0xffffffff\0" \
+        "fdt_addr=0x18000000\0" \
+        "boot_fdt=try\0" \
         "ip_dyn=yes\0" \
         "mmcdev=" __stringify(CONFIG_SYS_MMC_ENV_DEV) "\0" \
         "mmcpart=1\0" \
@@ -177,137 +180,120 @@
                                 "setexpr fw_sz ${fw_sz} + 1; "  \
                                 "mmc write ${loadaddr} 0x2 ${fw_sz}; " \
                         "fi; "  \
-                "fi\0" \
+                "fi;\0" \
         "mmcargs=setenv bootargs console=${console},${baudrate} " \
-                "root=${mmcroot}\0" \
-        "fatloadbootscript=" \
-                "fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
-        "ext2loadbootscript=" \
-                "ext2load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
+                "root=${mmcroot};\0" \
+        "loadbootscript=" \
+                "load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
         "bootscript=echo Running bootscript from mmc ...; " \
-                "source\0" \
-        "fatloadbootenv=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bootenv}\0" \
-        "fatloadbootfile=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bootfile}\0" \
-        "fatloadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
-        "ext2loadbootenv=ext2load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bootenv}\0" \
-        "ext2loadbootfile=ext2load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bootfile}\0" \
-        "ext2loadfdt=ext2load mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
+                "source;\0" \
+        "autodetectfdt=if test ${cpu} = 6SOLO || test ${cpu} = 6DL; then " \
+                        "setenv fdt_prefix imx6dl; " \
+                "else " \
+                        "setenv fdt_prefix imx6q; " \
+                "fi; " \
+                "if test ${board} = mx6-cubox-i; then " \
+                        "setenv fdt_file ${fdt_prefix}-cubox-i.dtb; " \
+                "else " \
+                        "setenv fdt_file ${fdt_prefix}-hummingboard.dtb; " \
+                "fi;\0" \
+        "loadbootenv=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bootenv};\0" \
+        "loadfdt=if test ${boottype} = mmc; then " \
+                     "load mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${file_prefix}${fdt_file}; " \
+		"else " \
+                     "${get_cmd} ${fdt_addr} ${fdt_file}; " \
+		"fi;\0 " \
+        "loadbootfile=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${file_prefix}${bootfile};\0" \
         "importbootenv=echo Importing environment from mmc${mmcdev} ...; " \
-                "env import -t ${loadaddr} ${filesize}\0" \
-        "fatmmcboot=echo Booting from mmc ...; " \
-                "run mmcargs; " \
-                "if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
-                        "if run fatloadfdt; then " \
-                                "if test ${bootfile} = zImage; then " \
-                                	"bootz ${loadaddr} - ${fdt_addr}; " \
-                                "else " \
-                                	"bootm ${loadaddr} - ${fdt_addr}; " \
-                                "fi; " \
+                "env import -t ${loadaddr} ${filesize};\0" \
+        "autobootfdt=echo Booting ${boot_file}; " \
+                "if test ${boot_file} = zImage; then " \
+		    "bootz ${loadaddr} - ${fdt_addr}; " \
+		"else " \
+		    "bootm ${loadaddr} - ${fdt_addr}; " \
+		"fi;\0 " \
+        "autoboot=echo Booting ${boot_file}; " \
+		"if test ${boot_file} = zImage; then " \
+		    "bootz; " \
+		"else " \
+		    "bootm; " \
+		"fi;\0 " \
+	"bootit=setenv boot_file ${bootfile}; " \
+                "if test ${boot_file} = zImage; then " \
+                    "if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
+                        "if run loadfdt; then " \
+                            "run autobootfdt; " \
                         "else " \
-                                "if test ${boot_fdt} = try; then " \
-                                	"if test ${bootfile} = zImage; then " \
-                                		"bootz; " \
-                                	"else " \
-                                		"bootm; " \
-                                	"fi; " \
-                                "else " \
-                                        "echo WARN: Cannot load the DT; " \
-                                "fi; " \
+                            "if test ${boot_fdt} = try; then " \
+                                  "echo WARN: Cannot load the DTB and boot file is type zImage;" \
+                                  "echo if you have not appended a dtb to the file it may;" \
+                                  "echo hang after displaying Starting kernel...;" \
+                                  "echo ;" \
+                                 "run autoboot; " \
+                            "else " \
+                                  "echo WARN: Cannot load the DT; " \
+                            "fi; " \
                         "fi; " \
+                    "else " \
+                        "run autoboot; " \
+                    "fi; " \
                 "else " \
-                        "if test ${bootfile} = zImage; then " \
-                        	"bootz; " \
-                        "else " \
-                        	"bootm; " \
-                        "fi; " \
+                        "run autoboot; " \
                 "fi;\0" \
-        "ext2mmcboot=echo Booting from mmc ...; " \
+        "mmcboot=echo Booting from mmc ...; " \
                 "run mmcargs; " \
-                "if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
-                        "if run ext2loadfdt; then " \
-                                "if test ${bootfile} = zImage; then " \
-                                	"bootz ${loadaddr} - ${fdt_addr}; " \
-                                "else " \
-                                	"bootm ${loadaddr} - ${fdt_addr}; " \
-                                "fi; " \
-                        "else " \
-                                "if test ${boot_fdt} = try; then " \
-                                	"if test ${bootfile} = zImage; then " \
-                                		"bootz; " \
-                                	"else " \
-                                		"bootm; " \
-                                	"fi; " \
-                                "else " \
-                                        "echo WARN: Cannot load the DT; " \
-                                "fi; " \
-                        "fi; " \
-                "else " \
-                        "if test ${bootfile} = zImage; then " \
-                        	"bootz; " \
-                        "else " \
-                        	"bootm; " \
-                        "fi; " \
-                "fi;\0" \
+                "setenv boottype mmc; " \
+                "run bootit;\0 " \
         "netargs=setenv bootargs console=${console},${baudrate} " \
-                "root=/dev/nfs " \
-        "ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp\0" \
+                "root=/dev/nfs ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp;\0" \
         "netboot=echo Booting from net ...; " \
-                "if test ${bootfile} = zImage; then " \
-                        "setenv realfile zImage; " \
-                "else " \
-                        "setenv realfile uImage; " \
-                "fi; " \
                 "run netargs; " \
+                "setenv boottype net; " \
                 "if test ${ip_dyn} = yes; then " \
-                        "setenv get_cmd dhcp; " \
+                    "setenv get_cmd dhcp; " \
                 "else " \
-                        "setenv get_cmd tftp; " \
+                    "setenv get_cmd tftp; " \
                 "fi; " \
+                "if test ${bootfile} = auto; then " \
+                     "setenv bootfile zImage; " \
+                     "if ${get_cmd} ${bootfile}; then " \
+                         "run bootit; " \
+                     "else " \
+                         "setenv bootfile uImage; " \
+                     "fi; " \
+                " fi; " \
                 "${get_cmd} ${bootfile}; " \
-                "if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
-                        "if ${get_cmd} ${fdt_addr} ${fdt_file}; then " \
-                                "if test ${realfile} = zImage; then " \
-                                	"bootz ${loadaddr} - ${fdt_addr}; " \
-                                "else " \
-                                	"bootm ${loadaddr} - ${fdt_addr}; " \
-                                "fi; " \
-                        "else " \
-                                "if test ${boot_fdt} = try; then " \
-                                	"if test ${bootfile} = zImage; then " \
-                                		"bootz; " \
-                                	"else " \
-                                		"bootm; " \
-                                	"fi; " \
-                                "else " \
-                                        "echo WARN: Cannot load the DT; " \
-                                "fi; " \
-                        "fi; " \
-                "else " \
-                        "if test ${bootfile} = zImage; then " \
-                        	"bootz; " \
-                        "else " \
-                        	"bootm; " \
-                        "fi; " \
-                "fi;\0"
+                "run bootit;\0 "
 
 #define CONFIG_BOOTCOMMAND \
 	   "mmc dev ${mmcdev}; if mmc rescan; then " \
-		   "if run ext2loadbootscript; then " \
-			   "run bootscript; " \
-		   "elif run fatloadbootscript; then " \
+               "for prefix in ${boot_prefixes}; do " \
+		   "setenv file_prefix ${prefix}; " \
+		   "if run loadbootscript; then " \
 			   "run bootscript; " \
 		   "else " \
-			   "if run ext2loadbootenv || run fatloadbootenv; then " \
+			   "run autodetectfdt; " \
+			   "if run loadbootenv; then " \
 				   "run importbootenv; " \
 			   "fi; " \
-			   "if run ext2loadbootfile; then " \
-				   "run ext2mmcboot; " \
-			   "elif run fatloadbootfile; then " \
-				   "run fatmmcboot; " \
-			   "else run netboot; " \
+                           "if test ${bootfile} = auto; then " \
+                                   "setenv origbootfile auto; " \
+                                   "setenv bootfile zImage; " \
+                                   "if run loadbootfile; then " \
+                                        "run mmcboot; " \
+                                   "else " \
+                                        "setenv bootfile uImage; " \
+                                   "fi; " \
+                           "fi; " \
+			   "if run loadbootfile; then " \
+				   "run mmcboot; " \
+			   "else " \
+				   "setenv bootfile ${origbootfile}; " \
 			   "fi; " \
 		   "fi; " \
-	   "else run netboot; fi"
+	       "done; " \
+	   "fi; " \
+	   "run netboot;\0 "
 
 /* Miscellaneous configurable options */
 #define CONFIG_SYS_LONGHELP

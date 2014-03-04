@@ -86,6 +86,7 @@
 #define CONFIG_CMD_MMC
 #define CONFIG_GENERIC_MMC
 #define CONFIG_BOUNCE_BUFFER
+#define CONFIG_CMD_EXT2
 #define CONFIG_CMD_EXT4
 #define CONFIG_CMD_FAT
 #define CONFIG_DOS_PARTITION
@@ -184,7 +185,7 @@
         "mmcargs=setenv bootargs console=${console},${baudrate} " \
                 "root=${mmcroot};\0" \
         "loadbootscript=" \
-                "load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
+                "load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${file_prefix}${script};\0" \
         "bootscript=echo Running bootscript from mmc ...; " \
                 "source;\0" \
         "autodetectfdt=if test ${cpu} = 6SOLO || test ${cpu} = 6DL; then " \
@@ -197,7 +198,7 @@
                 "else " \
                         "setenv fdt_file ${fdt_prefix}-hummingboard.dtb; " \
                 "fi;\0" \
-        "loadbootenv=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bootenv};\0" \
+        "loadbootenv=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${file_prefix}${bootenv};\0" \
         "loadfdt=if test ${boottype} = mmc; then " \
                      "load mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${file_prefix}${fdt_file}; " \
 		"else " \

@@ -60,7 +60,7 @@ static inline void setup_boot_device(void)
 		boot_dev = MX6_NAND_BOOT;
 		break;
 	default:
-		boot_dev = MX6_UNKNOWN_BOOT;
+		boot_dev = MX6_SD1_BOOT;
 		break;
 	}
 }
@@ -539,8 +539,8 @@ u32 spl_boot_device(void)
 		return BOOT_DEVICE_SATA;
 	case MX6_UNKNOWN_BOOT:
 	default:
-		printf("UNKNOWN\n");
-		return BOOT_DEVICE_NONE;
+		printf("UNKNOWN..\n");
+		return BOOT_DEVICE_MMC1;
 	}
 }
 

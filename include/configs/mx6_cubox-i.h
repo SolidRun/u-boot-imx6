@@ -186,7 +186,7 @@
         "mmcargs=setenv bootargs console=${console},${baudrate} " \
                 "root=${mmcroot};\0" \
         "loadbootscript=" \
-                "load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
+                "load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${file_prefix}${script};\0" \
         "bootscript=echo Running bootscript from mmc ...; " \
                 "source;\0" \
         "autodetectfdt=if test ${cpu} = 6SOLO || test ${cpu} = 6DL; then " \

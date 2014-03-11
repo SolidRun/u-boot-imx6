@@ -162,6 +162,8 @@
         "fdt_high=0xffffffff\0" \
         "initrd_high=0xffffffff\0" \
         "fdt_addr=0x18000000\0" \
+        "ramdiskaddr=0x11800000\0" \
+        "ramdisk=uInitrd\0" \
         "boot_fdt=try\0" \
         "ip_dyn=yes\0" \
         "mmcdev=" __stringify(CONFIG_SYS_MMC_ENV_DEV) "\0" \
@@ -204,19 +206,26 @@
                      "${get_cmd} ${fdt_addr} ${fdt_file}; " \
 		"fi;\0 " \
         "loadbootfile=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${file_prefix}${bootfile};\0" \
+        "loadramdisk=if test -n ${ramdisk}; then " \
+                         "if load mmc ${mmcdev}:${mmcpart} ${ramdiskaddr} ${file_prefix}${ramdisk}; then; else " \
+                             "setenv ramdiskaddr -; " \
+                         "fi; " \
+                     "else " \
+                     "   setenv ramdiskaddr -; " \
+                     "fi;\0" \
         "importbootenv=echo Importing environment from mmc${mmcdev} ...; " \
                 "env import -t ${loadaddr} ${filesize};\0" \
         "autobootfdt=echo Booting ${boot_file}; " \
                 "if test ${boot_file} = zImage; then " \
-		    "bootz ${loadaddr} - ${fdt_addr}; " \
+		    "bootz ${loadaddr} ${ramdiskaddr} ${fdt_addr}; " \
 		"else " \
-		    "bootm ${loadaddr} - ${fdt_addr}; " \
+		    "bootm ${loadaddr} ${ramdiskaddr} ${fdt_addr}; " \
 		"fi;\0 " \
         "autoboot=echo Booting ${boot_file}; " \
 		"if test ${boot_file} = zImage; then " \
-		    "bootz; " \
+		    "bootz ${loadaddr} ${ramdiskaddr}; " \
 		"else " \
-		    "bootm; " \
+		    "bootm ${loadaddr} ${ramdiskaddr}; " \
 		"fi;\0 " \
 	"bootit=setenv boot_file ${bootfile}; " \
                 "if test ${boot_file} = zImage; then " \
@@ -280,12 +289,14 @@
                                    "setenv origbootfile auto; " \
                                    "setenv bootfile zImage; " \
                                    "if run loadbootfile; then " \
+                                        "run loadramdisk; " \
                                         "run mmcboot; " \
                                    "else " \
                                         "setenv bootfile uImage; " \
                                    "fi; " \
                            "fi; " \
 			   "if run loadbootfile; then " \
+				   "run loadramdisk; " \
 				   "run mmcboot; " \
 			   "else " \
 				   "setenv bootfile ${origbootfile}; " \

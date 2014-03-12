@@ -82,11 +82,10 @@ static int mmc_load_image_fat(struct mmc *mmc, const char *filename)
 	spl_parse_image_header(header);
 
 	err = file_fat_read(filename, (u8 *)spl_image.load_addr, 0);
-
 end:
-/*	if (err <= 0)
+	if (err <= 0)
 		printf("spl: error reading image %s, err - %d\n",
-		       filename, err);*/
+		       filename, err);
 
 	return (err <= 0);
 }
@@ -101,8 +100,8 @@ static int mmc_load_image_fat_os(struct mmc *mmc)
 	err = file_fat_read(CONFIG_SPL_FAT_LOAD_ARGS_NAME,
 			    (void *)CONFIG_SYS_SPL_ARGS_ADDR, 0);
 	if (err <= 0) {
-		/*printf("spl: error reading image %s, err - %d\n",
-		       CONFIG_SPL_FAT_LOAD_ARGS_NAME, err);*/
+		printf("spl: error reading image %s, err - %d\n",
+		       CONFIG_SPL_FAT_LOAD_ARGS_NAME, err);
 		return -1;
 	}
 
@@ -210,7 +209,7 @@ void spl_mmc_load_image(void)
 
 	if (err) {
 		printf("Load image from RAW...\n");
-#ifdef CONFIG_SPL_OS_BOOT
+#ifdef CONFIG_SPL_OS_BOOT_RAW_SUPPORT
 		if (spl_start_uboot() || mmc_load_image_raw_os(mmc))
 #endif
 		err = mmc_load_image_raw(mmc, CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR);

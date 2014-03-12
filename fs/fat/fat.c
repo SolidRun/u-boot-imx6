@@ -1236,7 +1236,7 @@ int file_fat_ls(const char *dir)
 long file_fat_read_at(const char *filename, unsigned long pos, void *buffer,
 		      unsigned long maxsize)
 {
-	printf("reading %s\n", filename);
+	//printf("reading %s\n", filename);
 	return do_fat_read_at(filename, pos, buffer, maxsize, LS_NO);
 }
 

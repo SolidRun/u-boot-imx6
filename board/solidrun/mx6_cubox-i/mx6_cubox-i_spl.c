@@ -518,6 +518,13 @@ void spl_board_init(void)
 	setup_boot_device();
 }
 
+#ifdef CONFIG_SPL_OS_BOOT
+int spl_start_uboot(void)
+{
+    return 0;
+}
+#endif
+
 u32 spl_boot_device(void)
 {
 	puts("Boot Device: ");

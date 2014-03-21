@@ -14,6 +14,7 @@
 #include <version.h>
 #include <i2c.h>
 #include <image.h>
+#include <libfdt.h>
 #include <malloc.h>
 #include <linux/compiler.h>
 
@@ -64,6 +65,7 @@ __weak void spl_board_prepare_for_linux(void)
 void spl_parse_image_header(const struct image_header *header)
 {
 	u32 header_size = sizeof(struct image_header);
+	struct zimage_header *zi = (struct zimage_header *)header;
 
 	if (image_get_magic(header) == IH_MAGIC) {
 		if (spl_image.flags & SPL_COPY_PAYLOAD_ONLY) {
@@ -88,6 +90,15 @@ void spl_parse_image_header(const struct image_header *header)
 		debug("spl: payload image: %.*s load addr: 0x%x size: %d\n",
 			sizeof(spl_image.name), spl_image.name,
 			spl_image.load_addr, spl_image.size);
+	} else if (image_get_magic(header) == FDT_MAGIC) {
+		spl_image.have_fdt = 1;
+		spl_image.args_size = image_get_data_size(header);
+	} else if (zi->zi_magic == LINUX_ARM_ZIMAGE_MAGIC) {
+		spl_image.size = CONFIG_SYS_MONITOR_LEN;
+		spl_image.entry_point = CONFIG_SYS_UBOOT_START;
+		spl_image.load_addr = CONFIG_SYS_TEXT_BASE;
+		spl_image.os = IH_OS_LINUX;
+		spl_image.name = "Linux";
 	} else {
 		/* Signature not found - assume u-boot.bin */
 		debug("mkimage signature not found - ih_magic = %x\n",

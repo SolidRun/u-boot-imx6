@@ -11,6 +11,7 @@
 #include <asm/arch/sys_proto.h>
 #ifdef CONFIG_SPL
 #include <spl.h>
+#include <libfdt.h>
 #endif
 #include <asm/arch/iomux.h>
 #include <asm/arch/mx6-pins.h>
@@ -596,8 +597,93 @@ int spl_start_uboot(void)
 	}
 }
 
+/*
+ * Get cells len in bytes
+ *     if #NNNN-cells property is 2 then len is 8
+ *     otherwise len is 4
+ */
+static int get_cells_len(void *blob, char *nr_cells_name)
+{
+        const fdt32_t *cell;
+
+        cell = fdt_getprop(blob, 0, nr_cells_name, NULL);
+        if (cell && fdt32_to_cpu(*cell) == 2)
+                return 8;
+
+        return 4;
+}
+
+/*
+ * Write a 4 or 8 byte big endian cell
+ */
+static void write_cell(u8 *addr, u32 val, int size)
+{
+        int shift = (size - 1) * 8;
+        while (size-- > 0) {
+                *addr++ = (val >> shift) & 0xff;
+                shift -= 8;
+        }
+}
+
+static int spl_fdt_fixup_memory_node(void *blob, u32 start, u32 size)
+{
+        int err, nodeoffset;
+        int addr_cell_len, size_cell_len, len;
+        u8 tmp[8]; /* Up to 32-bit address + 32-bit size */
+        int bank;
+
+	printf("setup memory node at 0x%x, size: 0x%x\n", start, size);
+        err = fdt_check_header(blob);
+        if (err < 0) {
+                printf("%s: %s\n", __FUNCTION__, fdt_strerror(err));
+                return err;
+        }
+
+        /* update, or add and update /memory node */
+        nodeoffset = fdt_path_offset(blob, "/memory");
+        if (nodeoffset < 0) {
+                nodeoffset = fdt_add_subnode(blob, 0, "memory");
+                if (nodeoffset < 0)
+                        printf("WARNING: could not create /memory: %s.\n",
+                                        fdt_strerror(nodeoffset));
+                return nodeoffset;
+        }
+        err = fdt_setprop(blob, nodeoffset, "device_type", "memory",
+                        sizeof("memory"));
+        if (err < 0) {
+                printf("WARNING: could not set %s %s.\n", "device_type",
+                                fdt_strerror(err));
+                return err;
+        }
+
+        addr_cell_len = get_cells_len(blob, "#address-cells");
+        size_cell_len = get_cells_len(blob, "#size-cells");
+
+	write_cell(tmp + len, start, addr_cell_len);
+	len += addr_cell_len;
+
+	write_cell(tmp + len, size, size_cell_len);
+	len += size_cell_len;
+
+        err = fdt_setprop(blob, nodeoffset, "reg", tmp, len);
+        if (err < 0) {
+                printf("WARNING: could not set %s %s.\n",
+                                "reg", fdt_strerror(err));
+                return err;
+        }
+        return 0;
+}
+
 void spl_board_prepare_for_linux(void)
 {
+	int err;
+	if (spl_image.have_fdt) {
+		err = spl_fdt_fixup_memory_node((void*)spl_image.args_addr,
+						CONFIG_SYS_SDRAM_BASE, gd->ram_size);
+		if (err < 0)
+			printf("Failed to fixup memory node\n");
+	}
+
 	writel(MX6_REC_BOOT, SNVS_BASE_ADDR + SNVS_LPGPR);
 }
 

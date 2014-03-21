@@ -569,11 +569,30 @@ void spl_board_init(void)
 }
 
 #ifdef CONFIG_SPL_OS_BOOT
+
+#define MX6_REC_BOOT	(0 << 8)
+#define MX6_FAST_BOOT	(1 << 8)
+#define MX6_DEV_BOOT	(2 << 8)
+#define SNVS_LPGPR	0x68
+
 int spl_start_uboot(void)
 {
-	spl_image.args = build_dts_name();
-	return 0;
+	u32 reg = readl(SNVS_BASE_ADDR + SNVS_LPGPR);
+
+	if (!!(reg & MX6_FAST_BOOT)) {
+		spl_image.args = build_dts_name();
+		writel(MX6_REC_BOOT, SNVS_BASE_ADDR + SNVS_LPGPR);
+		return 0;
+	} else {
+		return 1;
+	}
 }
+
+void spl_board_prepare_for_linux(void)
+{
+	writel(MX6_REC_BOOT, SNVS_BASE_ADDR + SNVS_LPGPR);
+}
+
 #endif
 
 u32 spl_boot_device(void)

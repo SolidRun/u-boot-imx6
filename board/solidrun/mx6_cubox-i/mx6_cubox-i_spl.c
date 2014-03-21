@@ -546,6 +546,19 @@ static u32 spl_get_imx_type(void)
 	return (cpurev & 0xFF000) >> 12;
 }
 
+static void prefetch_enable(void)
+{
+#ifdef CONFIG_SYS_PL310_BASE
+	u32 reg;
+
+	writel(0x30000003, CONFIG_SYS_PL310_BASE + 0xf60);
+	
+	reg = readl(CONFIG_SYS_PL310_BASE + 0x104);
+	reg |= (1 << 30);
+	writel(reg, CONFIG_SYS_PL310_BASE + 0x104);
+#endif
+}
+
 void board_init_f(ulong dummy)
 {	
 	u32 imx_type, ram_size;
@@ -568,6 +581,7 @@ void board_init_f(ulong dummy)
 
 	timer_init();
 	preloader_console_init();
+	prefetch_enable();
 
 	board_init_r(NULL, 0);
 }

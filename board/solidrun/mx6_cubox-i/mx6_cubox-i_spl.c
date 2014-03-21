@@ -122,7 +122,7 @@ static void spl_dram_init_mx6solo_512mb(void);
 static void spl_dram_init_mx6dl_1g(void);
 static void spl_dram_init_mx6dq_1g(void);
 static void spl_dram_init_mx6dq_2g(void);
-static void spl_dram_init(u32 imxtype);
+static u32 spl_dram_init(u32 imxtype);
 
 static void spl_mx6q_dram_setup_iomux(void)
 {
@@ -504,30 +504,37 @@ static void spl_dram_init_mx6dq_2g(void)
 	mmdc_p0->mdscr = (u32)0x00000000;
 }
 
-static void spl_dram_init(u32 imxtype)
+static u32 spl_dram_init(u32 imxtype)
 {	
+	u32 ddr_size;
 	switch (imxtype){
 	case MXC_CPU_MX6SOLO:
 		spl_mx6dl_dram_setup_iomux();
 		spl_dram_init_mx6solo_512mb();
+		ddr_size = 0x20000000;
 		break;
 	case MXC_CPU_MX6Q:
 	{
 		/* Read first the snoop control unit config register */
 		u32 scu_config = *(u32 *)(SCU_BASE_ADDR + 0x4);
 		spl_mx6q_dram_setup_iomux();
-		if ((scu_config & 0x3) == 0x3) /* Quad core */
+		if ((scu_config & 0x3) == 0x3) { /* Quad core */
 			spl_dram_init_mx6dq_2g();
-		else /* Dual core */
+			ddr_size = 0x80000000;
+		} else { /* Dual core */
 			spl_dram_init_mx6dq_1g();
+			ddr_size = 0x40000000;
+		}
 		break;
 	}
 	case MXC_CPU_MX6DL:
 	default:
 		spl_mx6dl_dram_setup_iomux();
 		spl_dram_init_mx6dl_1g();
+		ddr_size = 0x40000000;
 		break;	
 	}
+	return ddr_size;
 }
 
 static u32 spl_get_imx_type(void)
@@ -540,12 +547,12 @@ static u32 spl_get_imx_type(void)
 
 void board_init_f(ulong dummy)
 {	
-	u32 imx_type;
+	u32 imx_type, ram_size;
 	/* Set the stack pointer. */
 	asm volatile("mov sp, %0\n" : : "r"(CONFIG_SPL_STACK));
 
 	imx_type = spl_get_imx_type();	
-	spl_dram_init(imx_type);	
+	ram_size = spl_dram_init(imx_type);	
 	
 	arch_cpu_init();
 
@@ -554,6 +561,7 @@ void board_init_f(ulong dummy)
 
 	/* Set global data pointer. */
 	gd = &gdata;
+	gd->ram_size = ram_size;
 
 	board_early_init_f();	
 

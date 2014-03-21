@@ -20,7 +20,8 @@ DECLARE_GLOBAL_DATA_PTR;
 #if defined(CONFIG_SPL_BUILD)
 
 static enum boot_device boot_dev;
-enum boot_device get_boot_device(void);
+static enum boot_device get_boot_device(void);
+static u32 spl_get_imx_type(void);
 
 static inline void setup_boot_device(void)
 {
@@ -75,7 +76,7 @@ static void spl_dram_init_mx6solo_512mb(void);
 static void spl_dram_init_mx6dl_1g(void);
 static void spl_dram_init_mx6dq_1g(void);
 static void spl_dram_init_mx6dq_2g(void);
-static void spl_dram_init(void);
+static void spl_dram_init(u32 imxtype);
 
 static void spl_mx6q_dram_setup_iomux(void)
 {
@@ -457,15 +458,8 @@ static void spl_dram_init_mx6dq_2g(void)
 	mmdc_p0->mdscr = (u32)0x00000000;
 }
 
-static void spl_dram_init(void)
+static void spl_dram_init(u32 imxtype)
 {	
-	u32 cpurev, imxtype;
-	
-	cpurev = get_cpu_rev();
-	imxtype = (cpurev & 0xFF000) >> 12;
-
-	get_imx_type(imxtype);	
-
 	switch (imxtype){
 	case MXC_CPU_MX6SOLO:
 		spl_mx6dl_dram_setup_iomux();
@@ -490,12 +484,22 @@ static void spl_dram_init(void)
 	}
 }
 
+static u32 spl_get_imx_type(void)
+{
+	u32 cpurev;
+	
+	cpurev = get_cpu_rev();
+	return (cpurev & 0xFF000) >> 12;
+}
+
 void board_init_f(ulong dummy)
 {	
+	u32 imx_type;
 	/* Set the stack pointer. */
 	asm volatile("mov sp, %0\n" : : "r"(CONFIG_SPL_STACK));
 
-	spl_dram_init();	
+	imx_type = spl_get_imx_type();	
+	spl_dram_init(imx_type);	
 	
 	arch_cpu_init();
 

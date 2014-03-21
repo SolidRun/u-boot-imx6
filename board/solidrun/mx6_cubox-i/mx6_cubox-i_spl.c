@@ -12,12 +12,26 @@
 #ifdef CONFIG_SPL
 #include <spl.h>
 #endif
+#include <asm/arch/iomux.h>
+#include <asm/arch/mx6-pins.h>
+#include <asm/gpio.h>
 
 #define CONFIG_SPL_STACK	0x0091FFB8
 
 DECLARE_GLOBAL_DATA_PTR;
 
 #if defined(CONFIG_SPL_BUILD)
+
+#define MX6QDL_SET_PAD(p, q) \
+        if (is_cpu_type(MXC_CPU_MX6Q)) \
+                imx_iomux_v3_setup_pad(MX6Q_##p | q);\
+        else \
+                imx_iomux_v3_setup_pad(MX6DL_##p | q)
+
+#define UART_PAD_CTRL  (PAD_CTL_PUS_100K_UP |                   \
+        PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm |                 \
+        PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
+
 
 static enum boot_device boot_dev;
 static enum boot_device get_boot_device(void);
@@ -68,6 +82,38 @@ static inline void setup_boot_device(void)
 
 enum boot_device get_boot_device(void) {
 	return boot_dev;
+}
+
+static const char *build_dts_name(void)
+{
+	char *dt_prefix;
+	char *dt_suffix;
+	int val;
+
+	switch (spl_get_imx_type()){
+	case MXC_CPU_MX6Q:
+		dt_prefix = "imx6q";
+		break;
+	case MXC_CPU_MX6SOLO:
+	case MXC_CPU_MX6DL:
+		dt_prefix = "imx6dl";	
+		break;	
+	default:
+		dt_prefix = "unknown";	
+		break;	
+	}
+
+        MX6QDL_SET_PAD(PAD_KEY_ROW1__GPIO_4_9, MUX_PAD_CTRL(UART_PAD_CTRL));
+
+        gpio_direction_input(IMX_GPIO_NR(4, 9));
+        val = gpio_get_value(IMX_GPIO_NR(4, 9));
+        if (val == 0) {
+                dt_suffix = "-cubox-i.dtb";
+        } else {
+                dt_suffix = "-hummingboard.dtb";
+        }
+	
+	return strcat(dt_prefix, dt_suffix);
 }
 
 #include "asm/arch/mx6_ddr_regs.h"
@@ -525,7 +571,8 @@ void spl_board_init(void)
 #ifdef CONFIG_SPL_OS_BOOT
 int spl_start_uboot(void)
 {
-    return 0;
+	spl_image.args = build_dts_name();
+	return 0;
 }
 #endif
 

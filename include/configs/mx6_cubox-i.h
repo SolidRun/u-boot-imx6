@@ -281,6 +281,9 @@
 			   "if run loadbootenv; then " \
 				   "run importbootenv; " \
 			   "fi; " \
+			   "if test -n {$serverip}; then " \
+				   "run netboot; " \
+			   "fi; " \
                            "if test ${bootfile} = auto; then " \
                                    "setenv origbootfile auto; " \
                                    "setenv bootfile zImage; " \

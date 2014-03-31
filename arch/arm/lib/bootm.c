@@ -297,15 +297,6 @@ int do_bootm_linux(int flag, int argc, char *argv[], bootm_headers_t *images)
 
 #ifdef CONFIG_CMD_BOOTZ
 
-struct zimage_header {
-	uint32_t	code[9];
-	uint32_t	zi_magic;
-	uint32_t	zi_start;
-	uint32_t	zi_end;
-};
-
-#define	LINUX_ARM_ZIMAGE_MAGIC	0x016f2818
-
 int bootz_setup(ulong image, ulong *start, ulong *end)
 {
 	struct zimage_header *zi;

@@ -58,6 +58,7 @@
 #define CONFIG_CMD_BMODE
 #define CONFIG_CMD_SETEXPR
 #define CONFIG_CMD_MEMTEST
+
 #define CONFIG_BOOTDELAY		3
 
 #define CONFIG_SYS_MEMTEST_START	0x10000000
@@ -65,6 +66,9 @@
 
 #define CONFIG_LOADADDR			0x10800000
 /*#define CONFIG_SYS_TEXT_BASE		0x17800000*/
+
+#define CONFIG_SYS_L2_PL310
+#define CONFIG_SYS_PL310_BASE		0x00a02000
 
 /* SATA Configuration */
 #ifdef CONFIG_CMD_SATA
@@ -86,6 +90,7 @@
 #define CONFIG_CMD_MMC
 #define CONFIG_GENERIC_MMC
 #define CONFIG_BOUNCE_BUFFER
+#define CONFIG_CMD_EXT2
 #define CONFIG_CMD_EXT4
 #define CONFIG_CMD_FAT
 #define CONFIG_DOS_PARTITION
@@ -184,7 +189,7 @@
         "mmcargs=setenv bootargs console=${console},${baudrate} " \
                 "root=${mmcroot};\0" \
         "loadbootscript=" \
-                "load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
+                "load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${file_prefix}${script};\0" \
         "bootscript=echo Running bootscript from mmc ...; " \
                 "source;\0" \
         "autodetectfdt=if test ${cpu} = 6SOLO || test ${cpu} = 6DL; then " \
@@ -197,7 +202,7 @@
                 "else " \
                         "setenv fdt_file ${fdt_prefix}-hummingboard.dtb; " \
                 "fi;\0" \
-        "loadbootenv=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bootenv};\0" \
+        "loadbootenv=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${file_prefix}${bootenv};\0" \
         "loadfdt=if test ${boottype} = mmc; then " \
                      "load mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${file_prefix}${fdt_file}; " \
 		"else " \
@@ -275,6 +280,9 @@
 			   "run autodetectfdt; " \
 			   "if run loadbootenv; then " \
 				   "run importbootenv; " \
+			   "fi; " \
+			   "if test -n ${serverip}; then " \
+				   "run netboot; " \
 			   "fi; " \
                            "if test ${bootfile} = auto; then " \
                                    "setenv origbootfile auto; " \

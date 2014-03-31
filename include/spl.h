@@ -22,8 +22,14 @@
 
 struct spl_image_info {
 	const char *name;
+	const char *os_image;
+	const char *second_stage;
+	const char *args;
+	int have_fdt;
 	u8 os;
 	u32 load_addr;
+	u32 args_addr;
+	u32 args_size;
 	u32 entry_point;
 	u32 size;
 	u32 flags;

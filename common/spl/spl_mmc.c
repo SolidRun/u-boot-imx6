@@ -57,7 +57,7 @@ static int mmc_load_image_raw_os(struct mmc *mmc)
 	if (!mmc->block_dev.block_read(0,
 				       CONFIG_SYS_MMCSD_RAW_MODE_ARGS_SECTOR,
 				       CONFIG_SYS_MMCSD_RAW_MODE_ARGS_SECTORS,
-				       (void *)CONFIG_SYS_SPL_ARGS_ADDR)) {
+				       (void *)spl_image.args_addr)) {
 		printf("mmc args blk read error\n");
 		return -1;
 	}
@@ -82,11 +82,10 @@ static int mmc_load_image_fat(struct mmc *mmc, const char *filename)
 	spl_parse_image_header(header);
 
 	err = file_fat_read(filename, (u8 *)spl_image.load_addr, 0);
-
 end:
-/*	if (err <= 0)
+	if (err <= 0)
 		printf("spl: error reading image %s, err - %d\n",
-		       filename, err);*/
+		       filename, err);
 
 	return (err <= 0);
 }
@@ -97,16 +96,27 @@ end:
 static int mmc_load_image_fat_os(struct mmc *mmc)
 {
 	int err;
+	struct image_header *header;
 
-	err = file_fat_read(CONFIG_SPL_FAT_LOAD_ARGS_NAME,
-			    (void *)CONFIG_SYS_SPL_ARGS_ADDR, 0);
+	err = file_fat_read(spl_image.args,
+			    (void *)spl_image.args_addr, 0);
 	if (err <= 0) {
-		/*printf("spl: error reading image %s, err - %d\n",
-		       CONFIG_SPL_FAT_LOAD_ARGS_NAME, err);*/
-		return -1;
+		printf("spl: error reading image %s, err - %d\n",
+		       spl_image.args, err);
+		goto end;
 	}
+	header = (struct image_header *)(CONFIG_SYS_TEXT_BASE -
+						sizeof(struct image_header));
 
-	return mmc_load_image_fat(mmc, CONFIG_SPL_FAT_LOAD_KERNEL_NAME);
+	err = file_fat_read(spl_image.args, header, sizeof(struct image_header));
+	if (err <= 0)
+		goto end;
+	spl_parse_image_header(header);
+
+	return mmc_load_image_fat(mmc, spl_image.os_image);
+
+end:
+	return err;
 }
 #endif
 #endif
@@ -142,19 +152,46 @@ end:
 static int mmc_load_image_ext_os(struct mmc *mmc)
 {
 	int err;
+	struct image_header *header;
 
-	err = file_fat_read(CONFIG_SPL_FAT_LOAD_ARGS_NAME,
-			    (void *)CONFIG_SYS_SPL_ARGS_ADDR, 0);
+	err = file_fat_read(spl_image.args,
+			    (void *)spl_image.args_addr, 0);
 	if (err <= 0) {
 		printf("spl: error reading image %s, err - %d\n",
-		       CONFIG_SPL_FAT_LOAD_ARGS_NAME, err);
-		return -1;
+		       spl_image.args, err);
+		goto end;
 	}
+	header = (struct image_header *)(CONFIG_SYS_TEXT_BASE -
+						sizeof(struct image_header));
 
-	return mmc_load_image_ext(mmc, CONFIG_SPL_FAT_LOAD_KERNEL_NAME);
+	err = file_fat_read(spl_image.args, header, sizeof(struct image_header));
+	if (err <= 0)
+		goto end;
+	spl_parse_image_header(header);
+
+	return mmc_load_image_ext(mmc, spl_image.os_image);
+
+end:
+	return err;
 }
 #endif
 #endif 
+
+static void spl_mmc_config(void)
+{
+	if (!spl_image.os_image)
+		spl_image.os_image = CONFIG_SPL_FAT_LOAD_KERNEL_NAME;
+	if (!spl_image.second_stage)
+		spl_image.second_stage = CONFIG_SPL_FAT_LOAD_PAYLOAD_NAME;
+	if (!spl_image.args)
+		spl_image.args = CONFIG_SPL_FAT_LOAD_ARGS_NAME;
+	if (!spl_image.args_addr)
+		spl_image.args_addr = CONFIG_SYS_SPL_ARGS_ADDR;
+
+	debug("Config to be loaded:\nOS: %s\nSTAGE2: %s\nARGS: %s\nARGS_ADDR: 0x%x\n",
+			spl_image.os_image, spl_image.second_stage,
+			spl_image.args, spl_image.args_addr);
+}
 
 void spl_mmc_load_image(void)
 {
@@ -176,6 +213,7 @@ void spl_mmc_load_image(void)
 		hang();
 	}
 
+	spl_mmc_config();
 
 #ifdef CONFIG_SPL_FAT_SUPPORT
 	/* FAT filesystem */
@@ -187,7 +225,7 @@ void spl_mmc_load_image(void)
 #ifdef CONFIG_SPL_OS_BOOT
 	if (spl_start_uboot() || mmc_load_image_fat_os(mmc))
 #endif
-	err = mmc_load_image_fat(mmc, CONFIG_SPL_FAT_LOAD_PAYLOAD_NAME);
+	err = mmc_load_image_fat(mmc, spl_image.second_stage);
 #endif
 
 #ifdef CONFIG_SPL_EXT_SUPPORT
@@ -204,13 +242,13 @@ void spl_mmc_load_image(void)
 #ifdef CONFIG_SPL_OS_BOOT
 		if (spl_start_uboot() || mmc_load_image_ext_os(mmc))
 #endif
-		err = mmc_load_image_ext(mmc, CONFIG_SPL_FAT_LOAD_PAYLOAD_NAME);
+		err = mmc_load_image_ext(mmc, spl_image.second_stage);
 	}
 #endif
 
 	if (err) {
 		printf("Load image from RAW...\n");
-#ifdef CONFIG_SPL_OS_BOOT
+#ifdef CONFIG_SPL_OS_BOOT_RAW_SUPPORT
 		if (spl_start_uboot() || mmc_load_image_raw_os(mmc))
 #endif
 		err = mmc_load_image_raw(mmc, CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR);

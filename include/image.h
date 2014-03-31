@@ -323,6 +323,15 @@ typedef struct bootm_headers {
 
 extern bootm_headers_t images;
 
+struct zimage_header {
+	uint32_t        code[9];
+	uint32_t        zi_magic;
+	uint32_t        zi_start;
+	uint32_t        zi_end;
+};
+
+#define LINUX_ARM_ZIMAGE_MAGIC  0x016f2818
+
 /*
  * Some systems (for example LWMON) have very short watchdog periods;
  * we must make sure to split long operations like memmove() or

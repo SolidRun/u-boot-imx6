@@ -11,7 +11,11 @@
 #include <asm/arch/sys_proto.h>
 #ifdef CONFIG_SPL
 #include <spl.h>
+#include <libfdt.h>
 #endif
+#include <asm/arch/iomux.h>
+#include <asm/arch/mx6-pins.h>
+#include <asm/gpio.h>
 
 #define CONFIG_SPL_STACK	0x0091FFB8
 
@@ -19,8 +23,20 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #if defined(CONFIG_SPL_BUILD)
 
+#define MX6QDL_SET_PAD(p, q) \
+        if (is_cpu_type(MXC_CPU_MX6Q)) \
+                imx_iomux_v3_setup_pad(MX6Q_##p | q);\
+        else \
+                imx_iomux_v3_setup_pad(MX6DL_##p | q)
+
+#define UART_PAD_CTRL  (PAD_CTL_PUS_100K_UP |                   \
+        PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm |                 \
+        PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
+
+
 static enum boot_device boot_dev;
-enum boot_device get_boot_device(void);
+static enum boot_device get_boot_device(void);
+static u32 spl_get_imx_type(void);
 
 static inline void setup_boot_device(void)
 {
@@ -60,7 +76,7 @@ static inline void setup_boot_device(void)
 		boot_dev = MX6_NAND_BOOT;
 		break;
 	default:
-		boot_dev = MX6_UNKNOWN_BOOT;
+		boot_dev = MX6_SD1_BOOT;
 		break;
 	}
 }
@@ -69,13 +85,45 @@ enum boot_device get_boot_device(void) {
 	return boot_dev;
 }
 
+static const char *build_dts_name(void)
+{
+	char *dt_prefix;
+	char *dt_suffix;
+	int val;
+
+	switch (spl_get_imx_type()){
+	case MXC_CPU_MX6Q:
+		dt_prefix = "imx6q";
+		break;
+	case MXC_CPU_MX6SOLO:
+	case MXC_CPU_MX6DL:
+		dt_prefix = "imx6dl";	
+		break;	
+	default:
+		dt_prefix = "unknown";	
+		break;	
+	}
+
+        MX6QDL_SET_PAD(PAD_KEY_ROW1__GPIO_4_9, MUX_PAD_CTRL(UART_PAD_CTRL));
+
+        gpio_direction_input(IMX_GPIO_NR(4, 9));
+        val = gpio_get_value(IMX_GPIO_NR(4, 9));
+        if (val == 0) {
+                dt_suffix = "-cubox-i.dtb";
+        } else {
+                dt_suffix = "-hummingboard.dtb";
+        }
+	
+	return strcat(dt_prefix, dt_suffix);
+}
+
 #include "asm/arch/mx6_ddr_regs.h"
 
 static void spl_dram_init_mx6solo_512mb(void);
 static void spl_dram_init_mx6dl_1g(void);
 static void spl_dram_init_mx6dq_1g(void);
 static void spl_dram_init_mx6dq_2g(void);
-static void spl_dram_init(void);
+static u32 spl_dram_init(u32 imxtype);
 
 static void spl_mx6q_dram_setup_iomux(void)
 {
@@ -457,45 +505,68 @@ static void spl_dram_init_mx6dq_2g(void)
 	mmdc_p0->mdscr = (u32)0x00000000;
 }
 
-static void spl_dram_init(void)
+static u32 spl_dram_init(u32 imxtype)
 {	
-	u32 cpurev, imxtype;
-	
-	cpurev = get_cpu_rev();
-	imxtype = (cpurev & 0xFF000) >> 12;
-
-	get_imx_type(imxtype);	
-
+	u32 ddr_size;
 	switch (imxtype){
 	case MXC_CPU_MX6SOLO:
 		spl_mx6dl_dram_setup_iomux();
 		spl_dram_init_mx6solo_512mb();
+		ddr_size = 0x20000000;
 		break;
 	case MXC_CPU_MX6Q:
 	{
 		/* Read first the snoop control unit config register */
 		u32 scu_config = *(u32 *)(SCU_BASE_ADDR + 0x4);
 		spl_mx6q_dram_setup_iomux();
-		if ((scu_config & 0x3) == 0x3) /* Quad core */
+		if ((scu_config & 0x3) == 0x3) { /* Quad core */
 			spl_dram_init_mx6dq_2g();
-		else /* Dual core */
+			ddr_size = 0x80000000;
+		} else { /* Dual core */
 			spl_dram_init_mx6dq_1g();
+			ddr_size = 0x40000000;
+		}
 		break;
 	}
 	case MXC_CPU_MX6DL:
 	default:
 		spl_mx6dl_dram_setup_iomux();
 		spl_dram_init_mx6dl_1g();
+		ddr_size = 0x40000000;
 		break;	
 	}
+	return ddr_size;
+}
+
+static u32 spl_get_imx_type(void)
+{
+	u32 cpurev;
+	
+	cpurev = get_cpu_rev();
+	return (cpurev & 0xFF000) >> 12;
+}
+
+static void prefetch_enable(void)
+{
+#ifdef CONFIG_SYS_PL310_BASE
+	u32 reg;
+
+	writel(0x30000003, CONFIG_SYS_PL310_BASE + 0xf60);
+	
+	reg = readl(CONFIG_SYS_PL310_BASE + 0x104);
+	reg |= (1 << 30);
+	writel(reg, CONFIG_SYS_PL310_BASE + 0x104);
+#endif
 }
 
 void board_init_f(ulong dummy)
 {	
+	u32 imx_type, ram_size;
 	/* Set the stack pointer. */
 	asm volatile("mov sp, %0\n" : : "r"(CONFIG_SPL_STACK));
 
-	spl_dram_init();	
+	imx_type = spl_get_imx_type();	
+	ram_size = spl_dram_init(imx_type);	
 	
 	arch_cpu_init();
 
@@ -504,11 +575,13 @@ void board_init_f(ulong dummy)
 
 	/* Set global data pointer. */
 	gd = &gdata;
+	gd->ram_size = ram_size;
 
 	board_early_init_f();	
 
 	timer_init();
 	preloader_console_init();
+	prefetch_enable();
 
 	board_init_r(NULL, 0);
 }
@@ -517,6 +590,118 @@ void spl_board_init(void)
 {
 	setup_boot_device();
 }
+
+#ifdef CONFIG_SPL_OS_BOOT
+
+#define MX6_REC_BOOT	(0 << 8)
+#define MX6_FAST_BOOT	(1 << 8)
+#define MX6_DEV_BOOT	(2 << 8)
+#define SNVS_LPGPR	0x68
+
+int spl_start_uboot(void)
+{
+	u32 reg = readl(SNVS_BASE_ADDR + SNVS_LPGPR);
+
+	if (!!(reg & MX6_FAST_BOOT)) {
+		spl_image.args = build_dts_name();
+		writel(MX6_REC_BOOT, SNVS_BASE_ADDR + SNVS_LPGPR);
+		return 0;
+	} else {
+		return 1;
+	}
+}
+
+/*
+ * Get cells len in bytes
+ *     if #NNNN-cells property is 2 then len is 8
+ *     otherwise len is 4
+ */
+static int get_cells_len(void *blob, char *nr_cells_name)
+{
+        const fdt32_t *cell;
+
+        cell = fdt_getprop(blob, 0, nr_cells_name, NULL);
+        if (cell && fdt32_to_cpu(*cell) == 2)
+                return 8;
+
+        return 4;
+}
+
+/*
+ * Write a 4 or 8 byte big endian cell
+ */
+static void write_cell(u8 *addr, u32 val, int size)
+{
+        int shift = (size - 1) * 8;
+        while (size-- > 0) {
+                *addr++ = (val >> shift) & 0xff;
+                shift -= 8;
+        }
+}
+
+static int spl_fdt_fixup_memory_node(void *blob, u32 start, u32 size)
+{
+        int err, nodeoffset;
+        int addr_cell_len, size_cell_len, len;
+        u8 tmp[8]; /* Up to 32-bit address + 32-bit size */
+        int bank;
+
+	printf("setup memory node at 0x%x, size: 0x%x\n", start, size);
+        err = fdt_check_header(blob);
+        if (err < 0) {
+                printf("%s: %s\n", __FUNCTION__, fdt_strerror(err));
+                return err;
+        }
+
+        /* update, or add and update /memory node */
+        nodeoffset = fdt_path_offset(blob, "/memory");
+        if (nodeoffset < 0) {
+                nodeoffset = fdt_add_subnode(blob, 0, "memory");
+                if (nodeoffset < 0)
+                        printf("WARNING: could not create /memory: %s.\n",
+                                        fdt_strerror(nodeoffset));
+                return nodeoffset;
+        }
+        err = fdt_setprop(blob, nodeoffset, "device_type", "memory",
+                        sizeof("memory"));
+        if (err < 0) {
+                printf("WARNING: could not set %s %s.\n", "device_type",
+                                fdt_strerror(err));
+                return err;
+        }
+
+        addr_cell_len = get_cells_len(blob, "#address-cells");
+        size_cell_len = get_cells_len(blob, "#size-cells");
+
+	write_cell(tmp + len, start, addr_cell_len);
+	len += addr_cell_len;
+
+	write_cell(tmp + len, size, size_cell_len);
+	len += size_cell_len;
+
+        err = fdt_setprop(blob, nodeoffset, "reg", tmp, len);
+        if (err < 0) {
+                printf("WARNING: could not set %s %s.\n",
+                                "reg", fdt_strerror(err));
+                return err;
+        }
+        return 0;
+}
+
+void spl_board_prepare_for_linux(void)
+{
+	int err;
+	if (spl_image.have_fdt) {
+		err = spl_fdt_fixup_memory_node((void*)spl_image.args_addr,
+						CONFIG_SYS_SDRAM_BASE, gd->ram_size);
+		if (err < 0)
+			printf("Failed to fixup memory node\n");
+	}
+
+	writel(MX6_REC_BOOT, SNVS_BASE_ADDR + SNVS_LPGPR);
+}
+
+#endif
 
 u32 spl_boot_device(void)
 {
@@ -539,8 +724,8 @@ u32 spl_boot_device(void)
 		return BOOT_DEVICE_SATA;
 	case MX6_UNKNOWN_BOOT:
 	default:
-		printf("UNKNOWN\n");
-		return BOOT_DEVICE_NONE;
+		printf("UNKNOWN..\n");
+		return BOOT_DEVICE_MMC1;
 	}
 }
 

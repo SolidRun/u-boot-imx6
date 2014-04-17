@@ -217,7 +217,6 @@ void s_init(void)
 	int is_6q = is_cpu_type(MXC_CPU_MX6Q);
 	u32 mask480;
 	u32 mask528;
-	u32 reg;
 
 	/* Due to hardware limitation, on MX6Q we need to gate/ungate all PFDs
 	 * to make sure PFD is working right, otherwise, PFDs may
@@ -238,18 +237,10 @@ void s_init(void)
 	 */
 	if (is_6q)
 		mask528 |= ANATOP_PFD_CLKGATE_MASK(2);
-
-	reg = readl(&anatop->pfd_480);
-	if (!(reg & ((1 << 6) | (1 << 14) | (1 << 22)))) {
-		writel(mask480, &anatop->pfd_480_set);
-		writel(mask480, &anatop->pfd_480_clr);
-	}
-
-	reg = readl(&anatop->pfd_528);
-	if (!(reg & ((1 << 6) | (1 << 14) | (1 << 22)))) {
-		writel(mask528, &anatop->pfd_528_set);
-		writel(mask528, &anatop->pfd_528_clr);
-	}
+	writel(mask480, &anatop->pfd_480_set);
+	writel(mask528, &anatop->pfd_528_set);
+	writel(mask480, &anatop->pfd_480_clr);
+	writel(mask528, &anatop->pfd_528_clr);
 }
 
 #ifdef CONFIG_IMX_HDMI
@@ -265,9 +256,6 @@ void imx_enable_hdmi_phy(void)
 	writeb(reg, &hdmi->phy_conf0);
 	udelay(3000);
 	reg |= HDMI_PHY_CONF0_GEN2_TXPWRON_MASK;
-	writeb(reg, &hdmi->phy_conf0);
-	udelay(3000);
-	reg &= ~HDMI_PHY_CONF0_GEN2_PDDQ_MASK;
 	writeb(reg, &hdmi->phy_conf0);
 	writeb(HDMI_MC_PHYRSTZ_ASSERT, &hdmi->mc_phyrstz);
 }

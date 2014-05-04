@@ -944,7 +944,7 @@ static void parse_putc(const char c)
 		CURSOR_SET;
 }
 
-void video_putc(const char c)
+static void _video_putc(const char c, int fl_cache)
 {
 #ifdef CONFIG_CFB_CONSOLE_ANSI
 	int i;
@@ -1154,8 +1154,13 @@ void video_putc(const char c)
 #else
 	parse_putc(c);
 #endif
-	if (cfb_do_flush_cache)
+	if (fl_cache && cfb_do_flush_cache)
 		flush_cache(VIDEO_FB_ADRS, VIDEO_SIZE);
+}
+
+void video_putc(const char c)
+{
+	_video_putc(c, 1);
 }
 
 void video_puts(const char *s)
@@ -1163,7 +1168,9 @@ void video_puts(const char *s)
 	int count = strlen(s);
 
 	while (count--)
-		video_putc(*s++);
+		_video_putc(*s++, 0);
+	if (cfb_do_flush_cache)
+		flush_cache(VIDEO_FB_ADRS, VIDEO_SIZE);
 }
 
 /*

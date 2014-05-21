@@ -89,7 +89,7 @@ static const char *build_dts_name(void)
 {
 	char *dt_prefix;
 	char *dt_suffix;
-	int val;
+	int val1, val2;
 
 	switch (spl_get_imx_type()){
 	case MXC_CPU_MX6Q:
@@ -104,15 +104,31 @@ static const char *build_dts_name(void)
 		break;	
 	}
 
-        MX6QDL_SET_PAD(PAD_KEY_ROW1__GPIO_4_9, MUX_PAD_CTRL(UART_PAD_CTRL));
+	MX6QDL_SET_PAD(PAD_KEY_ROW1__GPIO_4_9, MUX_PAD_CTRL(UART_PAD_CTRL));
+	MX6QDL_SET_PAD(PAD_EIM_DA4__GPIO_3_4, MUX_PAD_CTRL(UART_PAD_CTRL));
 
-        gpio_direction_input(IMX_GPIO_NR(4, 9));
-        val = gpio_get_value(IMX_GPIO_NR(4, 9));
-        if (val == 0) {
-                dt_suffix = "-cubox-i.dtb";
-        } else {
+	gpio_direction_input(IMX_GPIO_NR(4, 9));
+	gpio_direction_input(IMX_GPIO_NR(3, 4));
+
+	val1 = gpio_get_value(IMX_GPIO_NR(4, 9));
+	val2 = gpio_get_value(IMX_GPIO_NR(3, 4));
+
+	/*
+	 * Machine selection -
+	 * Machine        val1, val2
+	 * -------------------------
+	 * HB rev 3.x     x     0
+	 * CBi            0     1
+	 * HB             1     1
+	 */
+
+	if (val2 == 0) {
                 dt_suffix = "-hummingboard.dtb";
-        }
+	} else if (val1 == 0) {
+                dt_suffix = "-cubox-i.dtb";
+	} else {
+		dt_suffix = "-hummingboard.dtb";
+	}
 	
 	return strcat(dt_prefix, dt_suffix);
 }

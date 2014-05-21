@@ -122,9 +122,10 @@ iomux_v3_cfg_t const usdhc2_pads[] = {
 	MX6_PAD_SD2_DAT3__USDHC2_DAT3	| MUX_PAD_CTRL(USDHC_PAD_CTRL),
         MX6_PAD_GPIO_4__USDHC2_CD       | MUX_PAD_CTRL(USDHC_PAD_GPIO_CTRL),
 };
-iomux_v3_cfg_t const key_row1[] = {
+iomux_v3_cfg_t const hb_cbi_sense[] = {
 	/* Following is only for sensing if it's CuBox-i or HummingBoard */
 	MX6_PAD_KEY_ROW1__GPIO_4_9      | MUX_PAD_CTRL(UART_PAD_CTRL),
+	MX6_PAD_EIM_DA4__GPIO_3_4       | MUX_PAD_CTRL(UART_PAD_CTRL),
 }
 #endif
 
@@ -409,16 +410,33 @@ char config_sys_prompt_hummingboard[] = "HummingBoard U-Boot > ";
 char *config_sys_prompt = config_sys_prompt_cuboxi;
 static void detect_board(void)
 {
-	int val;
+	int val1,val2;
 #if defined(CONFIG_MX6Q) || defined(CONFIG_MX6DL)
-	imx_iomux_v3_setup_multiple_pads(key_row1, ARRAY_SIZE(key_row1));
+	imx_iomux_v3_setup_multiple_pads(hb_cbi_sense, ARRAY_SIZE(hb_cbi_sense));
 #endif
 #if defined(CONFIG_MX6QDL)
 	MX6QDL_SET_PAD(PAD_KEY_ROW1__GPIO_4_9, MUX_PAD_CTRL(UART_PAD_CTRL));
+	MX6QDL_SET_PAD(PAD_EIM_DA4__GPIO_3_4, MUX_PAD_CTRL(UART_PAD_CTRL));
 #endif
-        gpio_direction_input(IMX_GPIO_NR(4, 9));
-	val = gpio_get_value(IMX_GPIO_NR(4, 9));
-	if (val == 0) {
+	gpio_direction_input(IMX_GPIO_NR(4, 9));
+	gpio_direction_input(IMX_GPIO_NR(3, 4));
+
+	val1 = gpio_get_value(IMX_GPIO_NR(4, 9));
+	val2 = gpio_get_value(IMX_GPIO_NR(3, 4));
+
+	/*
+	 * Machine selection -
+	 * Machine        val1, val2
+	 * -------------------------
+	 * HB rev 3.x     x     0
+	 * CBi            0     1
+	 * HB             1     1
+	 */
+
+	if (val2 == 0) {
+		hb_cuboxi_ = 1;
+		config_sys_prompt = config_sys_prompt_hummingboard;
+	} else if (val1 == 0) {
 		hb_cuboxi_ = 0;
 		config_sys_prompt = config_sys_prompt_cuboxi;
 	} else {

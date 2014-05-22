@@ -456,10 +456,12 @@ int board_early_init_f(void)
 #if defined(CONFIG_MX6QDL)
 	MX6QDL_SET_PAD(PAD_EIM_D22__GPIO_3_22 , MUX_PAD_CTRL(UART_PAD_CTRL));
 	MX6QDL_SET_PAD(PAD_GPIO_0__GPIO_1_0 , MUX_PAD_CTRL(UART_PAD_CTRL));
-	MX6QDL_SET_PAD(PAD_GPIO_1__USB_OTG_ID, 0);
+	if (hb_cuboxi_ == 0) /* CuBox-i */
+		MX6QDL_SET_PAD(PAD_GPIO_1__USB_OTG_ID, 0);
 #else
 	/* Setup USB OTG ID */
-	imx_iomux_v3_setup_multiple_pads(usb_id_pad, ARRAY_SIZE(usb_id_pad));
+	if (hb_cuboxi_ == 0) /* CuBox-i */
+		imx_iomux_v3_setup_multiple_pads(usb_id_pad, ARRAY_SIZE(usb_id_pad));
 	/* Setup enable pads */
 	imx_iomux_v3_setup_multiple_pads(usb_en_pads, ARRAY_SIZE(usb_en_pads));
 #endif

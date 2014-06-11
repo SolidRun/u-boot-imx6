@@ -208,43 +208,52 @@
 		"else " \
                      "${get_cmd} ${fdt_addr} ${fdt_file}; " \
 		"fi;\0 " \
+        "loadramdisk=if test ${boottype} = mmc; then " \
+                     "load mmc ${mmcdev}:${mmcpart} ${ramdisk_addr} ${file_prefix}${ramdisk_file}; " \
+		"else " \
+                     "${get_cmd} ${ramdisk_addr} ${ramdisk_file}; " \
+		"fi;\0 " \
         "loadbootfile=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${file_prefix}${bootfile};\0" \
         "importbootenv=echo Importing environment from mmc${mmcdev} ...; " \
                 "env import -t ${loadaddr} ${filesize};\0" \
-        "autobootfdt=echo Booting ${boot_file}; " \
-                "if test ${boot_file} = zImage; then " \
-		    "bootz ${loadaddr} - ${fdt_addr}; " \
-		"else " \
-		    "bootm ${loadaddr} - ${fdt_addr}; " \
-		"fi;\0 " \
         "autoboot=echo Booting ${boot_file}; " \
 		"if test ${boot_file} = zImage; then " \
-		    "bootz; " \
+		    "bootz ${loadaddr} ${ramdisk_addr} ${fdt_addr}; " \
 		"else " \
-		    "bootm; " \
+		    "bootm ${loadaddr} ${ramdisk_addr} ${fdt_addr}; " \
 		"fi;\0 " \
 	"bootit=setenv boot_file ${bootfile}; " \
+                "if test -n ${ramdisk_file}; then " \
+		    "if run loadramdisk; then " \
+			"echo Loaded ${ramdisk_file}; " \
+		    "else " \
+			"setenv ramdisk_addr -; " \
+		    "fi; " \
+		"else " \
+		    "setenv ramdisk_addr -; " \
+                "fi; " \
                 "if test ${boot_file} = zImage; then " \
                     "if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
                         "if run loadfdt; then " \
-                            "run autobootfdt; " \
+			    "echo Loaded ${fdt_file}; " \
                         "else " \
+			    "setenv fdt_addr; " \
                             "if test ${boot_fdt} = try; then " \
                                   "echo WARN: Cannot load the DTB and boot file is type zImage;" \
                                   "echo if you have not appended a dtb to the file it may;" \
                                   "echo hang after displaying Starting kernel...;" \
                                   "echo ;" \
-                                 "run autoboot; " \
                             "else " \
                                   "echo WARN: Cannot load the DT; " \
                             "fi; " \
                         "fi; " \
                     "else " \
-                        "run autoboot; " \
+			"setenv fdt_addr; "\
                     "fi; " \
                 "else " \
-                        "run autoboot; " \
-                "fi;\0" \
+			"setenv fdt_addr; " \
+                "fi; " \
+                "run autoboot;\0 " \
         "mmcboot=echo Booting from mmc ...; " \
                 "run mmcargs; " \
                 "setenv boottype mmc; " \

@@ -126,7 +126,7 @@ iomux_v3_cfg_t const hb_cbi_sense[] = {
 	/* Following is only for sensing if it's CuBox-i or HummingBoard */
 	MX6_PAD_KEY_ROW1__GPIO_4_9      | MUX_PAD_CTRL(UART_PAD_CTRL),
 	MX6_PAD_EIM_DA4__GPIO_3_4       | MUX_PAD_CTRL(UART_PAD_CTRL),
-}
+};
 #endif
 
 static void setup_iomux_uart(void)

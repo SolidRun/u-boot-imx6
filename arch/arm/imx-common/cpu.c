@@ -99,8 +99,6 @@ unsigned imx_ddr_size(void)
 }
 #endif
 
-#if defined(CONFIG_DISPLAY_CPUINFO)
-
 const char *get_imx_type(u32 imxtype)
 {
 	switch (imxtype) {
@@ -120,6 +118,8 @@ const char *get_imx_type(u32 imxtype)
 		return "??";
 	}
 }
+
+#if defined(CONFIG_DISPLAY_CPUINFO)
 
 int print_cpuinfo(void)
 {

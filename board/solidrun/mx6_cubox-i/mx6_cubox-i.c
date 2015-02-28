@@ -311,7 +311,6 @@ int board_eth_init(bd_t *bis)
                 = (struct iomuxc_base_regs *) IOMUXC_BASE_ADDR;
 	struct anatop_regs __iomem *anatop =
                 (struct anatop_regs __iomem *)ANATOP_BASE_ADDR;
-	u32 reg = 0;
 	s32 timeout = 100000;
 
 	enable_fec_anatop_clock();

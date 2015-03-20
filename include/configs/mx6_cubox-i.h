@@ -124,6 +124,7 @@
 #define CONFIG_VGA_AS_SINGLE_DEVICE
 #define CONFIG_VIDEO_BMP_RLE8
 #define CONFIG_IMX_HDMI
+#define CONFIG_CMD_HDMIDETECT
 
 #undef CONFIG_SPLASH_SCREEN
 #undef CONFIG_SPLASH_SCREEN_ALIGN
@@ -149,8 +150,21 @@
 #define CONFIG_MXC_USB_FLAGS    0
 #define CONFIG_USB_KEYBOARD
 #define CONFIG_SYS_USB_EVENT_POLL
-#define CONFIG_PREBOOT "usb start"
+#define USB_BOOTCMD	"usb start;  setenv stdin serial,usbkbd; "
+#else
+#define USB_BOOTCMD	""
 #endif
+
+#define CONFIG_PREBOOT \
+	"if hdmidet; then " \
+		USB_BOOTCMD \
+		"setenv stdout serial,vga; " \
+		"setenv stderr serial,vga; " \
+	"else " \
+		"setenv stdin serial; " \
+		"setenv stdout serial; " \
+		"setenv stderr serial; " \
+	"fi;"
 
 #define CONFIG_SYS_CONSOLE_IS_IN_ENV
 
@@ -160,9 +174,6 @@
         "bootenv=uEnv.txt\0" \
         "boot_prefixes=/ /boot/\0" \
         "console=ttymxc0\0" \
-        "stdin=serial,usbkbd\0" \
-        "stdout=serial,vga\0" \
-        "stderr=serial,vga\0" \
         "splashpos=m,m\0" \
         "fdt_high=0xffffffff\0" \
         "initrd_high=0xffffffff\0" \

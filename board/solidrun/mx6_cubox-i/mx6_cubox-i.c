@@ -338,14 +338,14 @@ static struct fb_videomode const hdmi = {
         .refresh        = 60,
         .xres           = 1024,
         .yres           = 768,
-        .pixclock       = 15385,
-        .left_margin    = 220,
-        .right_margin   = 40,
-        .upper_margin   = 21,
-        .lower_margin   = 7,
-        .hsync_len      = 60,
-        .vsync_len      = 10,
-        .sync           = FB_SYNC_EXT | FB_SYNC_CLK_LAT_FALL,
+        .pixclock       = 15384,
+        .left_margin    = 160,
+        .right_margin   = 24,
+        .upper_margin   = 29,
+        .lower_margin   = 3,
+        .hsync_len      = 136,
+        .vsync_len      = 6,
+        .sync           = FB_SYNC_EXT,
         .vmode          = FB_VMODE_NONINTERLACED
 };
 
@@ -374,14 +374,54 @@ static void setup_display(void)
 {
         struct mxc_ccm_reg *mxc_ccm = (struct mxc_ccm_reg *)CCM_BASE_ADDR;
         int reg;
+	s32 timeout = 100000;
 
         enable_ipu_clock();
         imx_setup_hdmi();
 
-        reg = readl(&mxc_ccm->chsccdr);
-        reg |= (CHSCCDR_CLK_SEL_LDB_DI0
-                << MXC_CCM_CHSCCDR_IPU1_DI0_CLK_SEL_OFFSET);
-        writel(reg, &mxc_ccm->chsccdr);
+	/* set video pll to 455MHz (24MHz * (37+11/12) / 2) */
+	reg = readl(&mxc_ccm->analog_pll_video);
+	reg |= BM_ANADIG_PLL_VIDEO_POWERDOWN;
+	writel(reg, &mxc_ccm->analog_pll_video);
+
+	reg &= ~BM_ANADIG_PLL_VIDEO_DIV_SELECT;
+	reg |= BF_ANADIG_PLL_VIDEO_DIV_SELECT(37);
+	reg &= ~BM_ANADIG_PLL_VIDEO_POST_DIV_SELECT;
+	reg |= BF_ANADIG_PLL_VIDEO_POST_DIV_SELECT(1);
+	writel(reg, &mxc_ccm->analog_pll_video);
+
+	writel(BF_ANADIG_PLL_VIDEO_NUM_A(11), &mxc_ccm->analog_pll_video_num);
+	writel(BF_ANADIG_PLL_VIDEO_DENOM_B(12), &mxc_ccm->analog_pll_video_denom);
+
+	reg &= ~BM_ANADIG_PLL_VIDEO_POWERDOWN;
+	writel(reg, &mxc_ccm->analog_pll_video);
+
+	while (timeout--)
+		if (readl(&mxc_ccm->analog_pll_video) & BM_ANADIG_PLL_VIDEO_LOCK)
+			break;
+	if (timeout < 0)
+		printf("Warning: video pll lock timeout!\n");
+
+	reg = readl(&mxc_ccm->analog_pll_video);
+	reg |= BM_ANADIG_PLL_VIDEO_ENABLE;
+	reg &= ~BM_ANADIG_PLL_VIDEO_BYPASS;
+	writel(reg, &mxc_ccm->analog_pll_video);
+
+	/* select video pll for ldb_di0_clk */
+	reg = readl(&mxc_ccm->cs2cdr);
+	reg &= ~(MXC_CCM_CS2CDR_LDB_DI0_CLK_SEL_MASK);
+	writel(reg, &mxc_ccm->cs2cdr);
+
+	/* select ldb_di0_clk / 7 for ldb_di0_ipu_clk */
+	reg = readl(&mxc_ccm->cscmr2);
+	reg |= MXC_CCM_CSCMR2_LDB_DI0_IPU_DIV;
+	writel(reg, &mxc_ccm->cscmr2);
+
+	/* select ldb_di0_ipu_clk for ipu1_di0_clk -> 65MHz pixclock */
+	reg = readl(&mxc_ccm->chsccdr);
+	reg |= (CHSCCDR_CLK_SEL_LDB_DI0
+		<< MXC_CCM_CHSCCDR_IPU1_DI0_CLK_SEL_OFFSET);
+	writel(reg, &mxc_ccm->chsccdr);
 }
 #endif /* CONFIG_VIDEO_IPUV3 */
 

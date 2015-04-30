@@ -101,7 +101,7 @@ static void BootpCopyNetParams(struct Bootp_t *bp)
 	IPaddr_t tmp_ip;
 
 	NetCopyIP(&tmp_ip, &bp->bp_siaddr);
-	if (tmp_ip != 0)
+	if (!NetServerIP && (tmp_ip != 0))
 		NetCopyIP(&NetServerIP, &bp->bp_siaddr);
 	memcpy(NetServerEther, ((struct ethernet_hdr *)NetRxPacket)->et_src, 6);
 #endif

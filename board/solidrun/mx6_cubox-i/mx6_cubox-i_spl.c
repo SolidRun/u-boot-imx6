@@ -280,7 +280,7 @@ static void spl_dram_init_mx6solo_512mb(void)
 	mmdc_p0->mdscr = (u32)0x00008000;
 	mmdc_p0->mdrwd = (u32)0x000026d2;
 	mmdc_p0->mdor = (u32)0x00431023;
-	mmdc_p0->mdasp = (u32)0x00000017;//0x00000017
+	mmdc_p0->mdasp = (u32)0x0000007f;
 	mmdc_p0->mdctl = (u32)0x83190000;//0x83190000 <-- this should be it
 	mmdc_p0->mdscr = (u32)0x02008032;
 	mmdc_p0->mdscr = (u32)0x00008033;
@@ -347,7 +347,7 @@ static void spl_dram_init_mx6dl_1g(void)
 	mmdc_p0->mdscr = (u32)0x00008000;
 	mmdc_p0->mdrwd = (u32)0x000026d2;
 	mmdc_p0->mdor = (u32)0x00431023;
-	mmdc_p0->mdasp = (u32)0x00000027;
+	mmdc_p0->mdasp = (u32)0x0000007f;
 	mmdc_p0->mdctl = (u32)0x831A0000;
 
 	/* Initialize 2GB DDR3 - Micron MT41J128M */
@@ -429,7 +429,7 @@ static void spl_dram_init_mx6dq_1g(void)
 	mmdc_p0->mdor = (u32)0x005B0E21;
 	
 	/* 1G */
-	mmdc_p0->mdasp = (u32)0x00000027;
+	mmdc_p0->mdasp = (u32)0x0000007f;
 	mmdc_p0->mdctl = (u32)0x831a0000;
 
 	mmdc_p0->mdscr = (u32)0x02088032;
@@ -502,8 +502,8 @@ static void spl_dram_init_mx6dq_2g(void)
 	mmdc_p0->mdor = (u32)0x005B0E21;
 	
 	/* 2G */ 
-	mmdc_p0->mdasp = (u32)0x00000047;
-	mmdc_p0->mdctl = (u32)0x841a0000;
+	mmdc_p0->mdasp = (u32)0x0000007f;
+	mmdc_p0->mdctl = (u32)0x851a0000;
 	
 	mmdc_p0->mdscr = (u32)0x02088032;
 	mmdc_p0->mdscr = (u32)0x00008033;
@@ -537,7 +537,7 @@ static u32 spl_dram_init(u32 imxtype)
 		spl_mx6q_dram_setup_iomux();
 		if ((scu_config & 0x3) == 0x3) { /* Quad core */
 			spl_dram_init_mx6dq_2g();
-			ddr_size = 0x80000000;
+			ddr_size = 0xf0000000;
 		} else { /* Dual core */
 			spl_dram_init_mx6dq_1g();
 			ddr_size = 0x40000000;

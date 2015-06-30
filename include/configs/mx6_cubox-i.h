@@ -70,6 +70,7 @@
 #define CONFIG_SYS_L2_PL310
 
 /* SATA Configuration */
+#define CONFIG_CMD_SATA
 #ifdef CONFIG_CMD_SATA
 #define CONFIG_DWC_AHSATA
 #define CONFIG_SYS_SATA_MAX_DEVICE      1
@@ -199,7 +200,7 @@
                                 "mmc write ${loadaddr} 0x2 ${fw_sz}; " \
                         "fi; "  \
                 "fi;\0" \
-        "mmcargs=setenv bootargs console=${console},${baudrate} " \
+        "mmcargs=setenv bootargs quiet console=${console},${baudrate} " \
                 "root=${mmcroot};\0" \
         "loadbootscript=" \
                 "load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${file_prefix}${script};\0" \
@@ -212,8 +213,10 @@
                 "fi; " \
                 "if test ${board} = mx6-cubox-i; then " \
                         "setenv fdt_file ${fdt_prefix}-cubox-i.dtb; " \
-                "else " \
+                "elif test ${board} = mx6-hummingboard; then " \
                         "setenv fdt_file ${fdt_prefix}-hummingboard.dtb; " \
+                "else " \
+                        "setenv fdt_file ${fdt_prefix}-hummingboard2.dtb; " \
                 "fi;\0" \
         "loadbootenv=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${file_prefix}${bootenv};\0" \
         "loadfdt=if test ${boottype} = mmc; then " \

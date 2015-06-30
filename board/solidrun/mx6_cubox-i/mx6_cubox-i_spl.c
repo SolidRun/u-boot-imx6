@@ -89,7 +89,7 @@ static const char *build_dts_name(void)
 {
 	char *dt_prefix;
 	char *dt_suffix;
-	int val1, val2;
+	int val1, val2, val3;
 
 	switch (spl_get_imx_type()){
 	case MXC_CPU_MX6Q:
@@ -104,14 +104,17 @@ static const char *build_dts_name(void)
 		break;	
 	}
 
-	MX6QDL_SET_PAD(PAD_KEY_ROW1__GPIO_4_9, MUX_PAD_CTRL(UART_PAD_CTRL));
-	MX6QDL_SET_PAD(PAD_EIM_DA4__GPIO_3_4, MUX_PAD_CTRL(UART_PAD_CTRL));
-
 	gpio_direction_input(IMX_GPIO_NR(4, 9));
 	gpio_direction_input(IMX_GPIO_NR(3, 4));
+	gpio_direction_input(IMX_GPIO_NR(2, 8));
+
+	MX6QDL_SET_PAD(PAD_KEY_ROW1__GPIO_4_9, MUX_PAD_CTRL(UART_PAD_CTRL));
+	MX6QDL_SET_PAD(PAD_EIM_DA4__GPIO_3_4, MUX_PAD_CTRL(UART_PAD_CTRL));
+	MX6QDL_SET_PAD(PAD_SD4_DAT0__GPIO_2_8, MUX_PAD_CTRL(UART_PAD_CTRL));
 
 	val1 = gpio_get_value(IMX_GPIO_NR(4, 9));
 	val2 = gpio_get_value(IMX_GPIO_NR(3, 4));
+	val3 = gpio_get_value(IMX_GPIO_NR(2, 8));
 
 	/*
 	 * Machine selection -
@@ -122,7 +125,9 @@ static const char *build_dts_name(void)
 	 * HB             1     1
 	 */
 
-	if (val2 == 0) {
+	if (val3 == 0) {
+		dt_suffix = "-hummingboard2.dtb";
+	} else if (val2 == 0) {
                 dt_suffix = "-hummingboard.dtb";
 	} else if (val1 == 0) {
                 dt_suffix = "-cubox-i.dtb";
@@ -145,9 +150,8 @@ static void spl_mx6q_dram_setup_iomux(void)
 {
 	volatile struct mx6qd_iomux_ddr_regs *mx6q_ddr_iomux;
 	volatile struct mx6qd_iomux_grp_regs *mx6q_grp_iomux;
-
-	mx6q_ddr_iomux = (struct mx6dq_iomux_ddr_regs *) MX6DQ_IOM_DDR_BASE;
-	mx6q_grp_iomux = (struct mx6dq_iomux_grp_regs *) MX6DQ_IOM_GRP_BASE;
+	mx6q_ddr_iomux = (struct mx6qd_iomux_ddr_regs *) MX6DQ_IOM_DDR_BASE;
+	mx6q_grp_iomux = (struct mx6qd_iomux_grp_regs *) MX6DQ_IOM_GRP_BASE;
 
 	mx6q_grp_iomux->grp_ddr_type = (u32)0x000c0000;
 	mx6q_grp_iomux->grp_ddrpke = (u32)0x00000000;
@@ -524,6 +528,7 @@ static void spl_dram_init_mx6dq_2g(void)
 static u32 spl_dram_init(u32 imxtype)
 {	
 	u32 ddr_size;
+
 	switch (imxtype){
 	case MXC_CPU_MX6SOLO:
 		spl_mx6dl_dram_setup_iomux();
@@ -605,6 +610,9 @@ void board_init_f(ulong dummy)
 void spl_board_init(void)
 {
 	setup_boot_device();
+#ifdef CONFIG_CMD_SATA
+	setup_sata();
+#endif
 }
 
 #ifdef CONFIG_SPL_OS_BOOT

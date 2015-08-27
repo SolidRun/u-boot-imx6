@@ -239,6 +239,7 @@
 		    "bootm ${loadaddr} ${ramdisk_addr} ${fdt_addr}; " \
 		"fi;\0 " \
 	"bootit=setenv boot_file ${bootfile}; " \
+		"fdt_addr_bak=${fdt_addr}; " \
                 "if test -n ${ramdisk_file}; then " \
 		    "if run loadramdisk; then " \
 			"echo Loaded ${ramdisk_file}; " \
@@ -269,7 +270,8 @@
                 "else " \
 			"setenv fdt_addr; " \
                 "fi; " \
-                "run autoboot;\0 " \
+                "run autoboot; " \
+		"setenv fdt_addr ${fdt_addr_bak};\0 " \
         "mmcboot=echo Booting from mmc ...; " \
                 "run mmcargs; " \
                 "setenv boottype mmc; " \

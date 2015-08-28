@@ -231,7 +231,7 @@ int genphy_update_link(struct phy_device *phydev)
 			if (i > PHY_ANEG_TIMEOUT) {
 				printf(" TIMEOUT !\n");
 				phydev->link = 0;
-				return 0;
+				return -ETIMEDOUT;
 			}
 
 			if (ctrlc()) {
@@ -415,10 +415,13 @@ int genphy_config(struct phy_device *phydev)
 
 int genphy_startup(struct phy_device *phydev)
 {
-	genphy_update_link(phydev);
-	genphy_parse_link(phydev);
+	int result;
 
-	return 0;
+	result = genphy_update_link(phydev);
+	if (!result)
+		result = genphy_parse_link(phydev);
+
+	return result;
 }
 
 int genphy_shutdown(struct phy_device *phydev)

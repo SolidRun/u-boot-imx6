@@ -610,8 +610,7 @@ static int fec_init(struct eth_device *dev, bd_t* bd)
 	if (fec->xcv_type != SEVENWIRE)
 		miiphy_restart_aneg(dev);
 #endif
-	fec_open(dev);
-	return 0;
+	return fec_open(dev);
 
 err3:
 	free(fec->rbd_base);

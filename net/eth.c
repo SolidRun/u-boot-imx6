@@ -410,7 +410,7 @@ int eth_init(bd_t *bis)
 	do {
 		debug("Trying %s\n", eth_current->name);
 
-		if (eth_current->init(eth_current, bis) >= 0) {
+		if (!eth_current->init(eth_current, bis)) {
 			eth_current->state = ETH_STATE_ACTIVE;
 
 			return 0;

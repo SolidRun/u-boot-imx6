@@ -567,15 +567,19 @@ static u32 spl_get_imx_type(void)
 	return (cpurev & 0xFF000) >> 12;
 }
 
-static void prefetch_enable(void)
+static void l2x0_aux_setup(void)
 {
 #ifdef CONFIG_SYS_PL310_BASE
 	u32 reg;
 
+	/* prefetch enable */
 	writel(0x30000003, CONFIG_SYS_PL310_BASE + 0xf60);
 	
 	reg = readl(CONFIG_SYS_PL310_BASE + 0x104);
+	/* early bsp */
 	reg |= (1 << 30);
+	/* shared attribute override */
+	reg |= (1 << 22);
 	writel(reg, CONFIG_SYS_PL310_BASE + 0x104);
 #endif
 }
@@ -602,7 +606,7 @@ void board_init_f(ulong dummy)
 
 	timer_init();
 	preloader_console_init();
-	prefetch_enable();
+	l2x0_aux_setup();
 
 	board_init_r(NULL, 0);
 }

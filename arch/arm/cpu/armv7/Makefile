@@ -11,7 +11,7 @@ LIB	= $(obj)lib$(CPU).o
 
 START	:= start.o
 
-COBJS	+= cache_v7.o
+COBJS	+= cache_v7.o cache_v7_asm.o
 
 COBJS	+= cpu.o
 COBJS	+= syslib.o

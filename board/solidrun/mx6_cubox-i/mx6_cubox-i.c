@@ -93,10 +93,9 @@ static u32 get_ram_size_stride_test(u32 *base, u32 maxsize)
 	volatile u32 *addr;
 	u32            save[64];
 	u32            cnt;
-	long           size;
 	u32		size_tmp;
 	int            i = 0;
-	cnt = maxsize;
+
 	/* First save the data */
 	for (cnt = 0; cnt < maxsize; cnt += MEM_STRIDE) {
 		addr = (volatile u32 *)((u32)base + cnt);	/* pointer arith! */
@@ -111,12 +110,12 @@ static u32 get_ram_size_stride_test(u32 *base, u32 maxsize)
 		long tmp;
 		* (volatile u32 *)((u32)base + (u32)size_tmp) = (u32)size_tmp;
 		sync ();
-		tmp = * (volatile u32 *)((u32)base + (u32)size);
+		tmp = * (volatile u32 *) base;
 		if (tmp == size_tmp) { /* Looks we reached overlapping address */
 			break;
 		}
 	}
-	/* Resotre the data */
+	/* Restore the data */
 	for (cnt = (maxsize - MEM_STRIDE); i > 0; cnt -= MEM_STRIDE) {
 		i--;
 		addr = (volatile u32 *)((u32)base + cnt);	/* pointer arith! */

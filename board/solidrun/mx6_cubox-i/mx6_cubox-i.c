@@ -209,14 +209,21 @@ int board_mmc_getcd(struct mmc *mmc)
 
         if (cfg->esdhc_base == USDHC2_BASE_ADDR) {
                 return !gpio_get_value(IMX_GPIO_NR(1, 4));
-        }
-
+        } else if (cfg->esdhc_base == USDHC3_BASE_ADDR) {
+		/*
+		 * USDHC3 is typically MMC which doesn't have card detect
+		 * signal
+		 */
+		return -1;
+	}
         return 0;
 }
 
 int board_mmc_init(bd_t *bis)
 {
 	int status = 0;
+	uint soc_sbmr = readl(SRC_BASE_ADDR + 0x4);
+	uint bt_mem_ctl = (soc_sbmr & 0x000000FF) >> 4 ;
 	usdhc2_cfg.sdhc_clk = mxc_get_clock(MXC_ESDHC2_CLK);
 	usdhc2_cfg.max_bus_width = 4;
 #if defined(CONFIG_MX6Q) || defined(CONFIG_MX6DL)
@@ -234,7 +241,12 @@ int board_mmc_init(bd_t *bis)
 #endif
         gpio_direction_input(IMX_GPIO_NR(1, 4));
         usdhc2_cfg.sdhc_clk = mxc_get_clock(MXC_ESDHC2_CLK);
-	status = fsl_esdhc_initialize(bis, &usdhc2_cfg);
+
+	if (bt_mem_ctl != 0x6) {
+		/* Only in case of booting from eMMC, register the micro SD later */
+		status = fsl_esdhc_initialize(bis, &usdhc2_cfg);
+	}
+
 	if (hb_cuboxi_ == 2) { /* HummingBoard 2 */
 		MX6QDL_SET_PAD(PAD_SD3_CLK__USDHC3_CLK   , MUX_PAD_CTRL(USDHC_PAD_CTRL));
 		MX6QDL_SET_PAD(PAD_SD3_CMD__USDHC3_CMD   , MUX_PAD_CTRL(USDHC_PAD_CTRL));
@@ -250,6 +262,9 @@ int board_mmc_init(bd_t *bis)
 		usdhc3_cfg.max_bus_width = 8;
 		usdhc3_cfg.sdhc_clk = mxc_get_clock(MXC_ESDHC3_CLK);
 		fsl_esdhc_initialize(bis, &usdhc3_cfg);
+	}
+	if (bt_mem_ctl == 0x6) {
+		status = fsl_esdhc_initialize(bis, &usdhc2_cfg);
 	}
 	return status;
 }

@@ -743,7 +743,7 @@ u32 spl_boot_device(void)
 		return BOOT_DEVICE_MMC2;
 	case MX6_MMC_BOOT:
 		printf("MMC\n");
-		return BOOT_DEVICE_MMC2;
+		return BOOT_DEVICE_MMC2_2;
 	case MX6_NAND_BOOT:
 		printf("NAND\n");
 		return BOOT_DEVICE_NAND;

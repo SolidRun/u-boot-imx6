@@ -216,11 +216,11 @@
                         "setenv fdt_prefix imx6q; " \
                 "fi; " \
                 "if test ${board} = mx6-cubox-i; then " \
-                        "setenv fdt_file ${fdt_prefix}-cubox-i.dtb; " \
+                        "setenv fdt_file ${fdt_prefix}-cubox-i${somrev}.dtb; " \
                 "elif test ${board} = mx6-hummingboard; then " \
-                        "setenv fdt_file ${fdt_prefix}-hummingboard.dtb; " \
+                        "setenv fdt_file ${fdt_prefix}-hummingboard${somrev}.dtb; " \
                 "else " \
-                        "setenv fdt_file ${fdt_prefix}-hummingboard2.dtb; " \
+                        "setenv fdt_file ${fdt_prefix}-hummingboard2${somrev}.dtb; " \
                 "fi;\0" \
         "loadbootenv=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${file_prefix}${bootenv};\0" \
         "loadfdt=if test ${boottype} = mmc; then " \

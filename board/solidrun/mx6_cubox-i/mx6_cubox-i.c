@@ -77,6 +77,7 @@ DECLARE_GLOBAL_DATA_PTR;
 #define LED IMX_GPIO_NR(4, 29)
 
 int hb_cuboxi_ = 0; /* 2 is HummingBoard2, 1 is HummingBoard, 0 is CuBox-i */
+int ver_15_ = 0; /* 0 is original som, 1 is the rev 1.5 */
 
 int dram_init(void)
 {
@@ -106,6 +107,8 @@ iomux_v3_cfg_t const hb_cbi_sense[] = {
 	MX6_PAD_KEY_ROW1__GPIO_4_9      | MUX_PAD_CTRL(UART_PAD_CTRL),
 	MX6_PAD_EIM_DA4__GPIO_3_4       | MUX_PAD_CTRL(UART_PAD_CTRL),
 	PAD_SD4_DAT0__GPIO_2_8		| MUX_PAD_CTRL(UART_PAD_CTRL),
+	PAD_CSI0_DAT14__GPIO_6_0	| MUX_PAD_CTRL(UART_PAD_CTRL),
+	PAD_CSI0_DAT18__GPIO_6_4	| MUX_PAD_CTRL(UART_PAD_CTRL),
 };
 #endif
 
@@ -463,7 +466,7 @@ char config_sys_prompt_hummingboard2[] = "HummingBoard2 U-Boot > ";
 char *config_sys_prompt = config_sys_prompt_cuboxi;
 static void detect_board(void)
 {
-	int val1,val2,val3;
+	int val1,val2,val3,val4,val5;
 #if defined(CONFIG_MX6Q) || defined(CONFIG_MX6DL)
 	imx_iomux_v3_setup_multiple_pads(hb_cbi_sense, ARRAY_SIZE(hb_cbi_sense));
 #endif
@@ -471,14 +474,20 @@ static void detect_board(void)
 	MX6QDL_SET_PAD(PAD_KEY_ROW1__GPIO_4_9, MUX_PAD_CTRL(UART_PAD_CTRL));
 	MX6QDL_SET_PAD(PAD_EIM_DA4__GPIO_3_4, MUX_PAD_CTRL(UART_PAD_CTRL));
 	MX6QDL_SET_PAD(PAD_SD4_DAT0__GPIO_2_8, MUX_PAD_CTRL(UART_PAD_CTRL));
+	MX6QDL_SET_PAD(PAD_CSI0_DAT14__GPIO_6_0, MUX_PAD_CTRL(UART_PAD_CTRL));
+	MX6QDL_SET_PAD(PAD_CSI0_DAT18__GPIO_6_4, MUX_PAD_CTRL(UART_PAD_CTRL));
 #endif
 	gpio_direction_input(IMX_GPIO_NR(4, 9));
 	gpio_direction_input(IMX_GPIO_NR(3, 4));
 	gpio_direction_input(IMX_GPIO_NR(2, 8));
+	gpio_direction_input(IMX_GPIO_NR(6, 0));
+	gpio_direction_input(IMX_GPIO_NR(6, 4));
 
 	val1 = gpio_get_value(IMX_GPIO_NR(4, 9));
 	val2 = gpio_get_value(IMX_GPIO_NR(3, 4));
 	val3 = gpio_get_value(IMX_GPIO_NR(2, 8));
+	val4 = gpio_get_value(IMX_GPIO_NR(6, 0));
+	val5 = gpio_get_value(IMX_GPIO_NR(6, 4));
 
 	/*
 	 * Machine selection -
@@ -502,6 +511,12 @@ static void detect_board(void)
 	} else {
 		hb_cuboxi_ = 1;
 		config_sys_prompt = config_sys_prompt_hummingboard;
+	}
+
+	if (val4 == 1 && val5 == 0) {
+		ver_15_ = 1;
+	} else {
+		ver_15_ = 0;
 	}
 }
 
@@ -589,6 +604,7 @@ int board_init(void)
 }
 
 static char const *board_type = "uninitialized";
+static char const *som_rev = "";
 
 int checkboard(void)
 {
@@ -601,6 +617,10 @@ int checkboard(void)
 	} else {
 		puts("Board: MX6-HummingBoard2\n");
 		board_type = "mx6-hummingboard2";
+	}
+
+	if (ver_15_ == 1) {
+		som_rev = "-som-v15";
 	}
 	return 0;
 }
@@ -618,6 +638,7 @@ int board_late_init(void)
         int cpurev = get_cpu_rev();
         setenv("cpu",get_imx_type((cpurev & 0xFF000) >> 12));
         setenv("board",board_type);
+        setenv("somrev",som_rev);
 
 #ifdef CONFIG_CMD_BMODE
         add_board_boot_modes(board_boot_modes);

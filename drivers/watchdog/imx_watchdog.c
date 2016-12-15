@@ -22,7 +22,6 @@ struct watchdog_regs {
 #define WCR_WDW		0x80
 #define SET_WCR_WT(x)	(x << 8)
 
-#ifdef CONFIG_IMX_WATCHDOG
 void hw_watchdog_reset(void)
 {
 	struct watchdog_regs *wdog = (struct watchdog_regs *)WDOG1_BASE_ADDR;
@@ -31,6 +30,7 @@ void hw_watchdog_reset(void)
 	writew(0xaaaa, &wdog->wsr);
 }
 
+#ifdef CONFIG_IMX_WATCHDOG
 void hw_watchdog_init(void)
 {
 	struct watchdog_regs *wdog = (struct watchdog_regs *)WDOG1_BASE_ADDR;
@@ -60,6 +60,7 @@ void hw_watchdog_init(void)
 }
 #endif
 
+#ifndef CONFIG_SPL_BUILD
 void reset_cpu(ulong addr)
 {
 	struct watchdog_regs *wdog = (struct watchdog_regs *)WDOG1_BASE_ADDR;
@@ -72,3 +73,4 @@ void reset_cpu(ulong addr)
 		 */
 	}
 }
+#endif

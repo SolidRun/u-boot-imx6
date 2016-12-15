@@ -619,7 +619,9 @@ void spl_board_init(void)
 	setup_sata();
 #endif
 
+#ifdef CONFIG_SPL_WATCHDOG_SUPPORT
 	hw_watchdog_init();
+#endif
 }
 
 #ifdef CONFIG_SPL_OS_BOOT

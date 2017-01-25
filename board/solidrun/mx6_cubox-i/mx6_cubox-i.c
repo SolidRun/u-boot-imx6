@@ -559,6 +559,14 @@ int setup_sata(void)
 }
 #endif
 
+/* PCI Probe function. */
+void pci_init_board(void)
+{
+  /* At this point we only support reset. This is to solve the reboot hang problem due to wrong pcie status */
+  imx_pcie_reset();
+}
+
+
 int board_init(void)
 {
 	/* address of boot parameters */

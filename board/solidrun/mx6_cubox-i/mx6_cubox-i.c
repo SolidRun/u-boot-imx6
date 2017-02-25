@@ -79,9 +79,50 @@ DECLARE_GLOBAL_DATA_PTR;
 int hb_cuboxi_ = 0; /* 2 is HummingBoard2, 1 is HummingBoard, 0 is CuBox-i */
 int ver_15_ = 0; /* 0 is original som, 1 is the rev 1.5 */
 
+#define MEM_STRIDE 0x4000000
+static u32 get_ram_size_stride_test(u32 *base, u32 maxsize)
+{
+	volatile u32 *addr;
+	u32	  save[64];
+	u32	  cnt;
+	u32	  size;
+	int	  i = 0;
+
+	/* First save the data */
+	for (cnt = 0; cnt < maxsize; cnt += MEM_STRIDE) {
+		addr = (volatile u32 *)((u32)base + cnt);       /* pointer arith! */
+		sync ();
+		save[i++] = *addr;
+		sync ();
+	}
+
+	/* First write a signature */
+	* (volatile u32 *)base = 0x12345678;
+	for (size = MEM_STRIDE; size < maxsize; size += MEM_STRIDE) {
+		* (volatile u32 *)((u32)base + size) = size;
+		sync ();
+		if (* (volatile u32 *)((u32)base) == size) {    /* We reached the overlapping address */
+			break;
+		}
+	}
+
+	/* Restore the data */
+	for (cnt = (maxsize - MEM_STRIDE); i > 0; cnt -= MEM_STRIDE) {
+		addr = (volatile u32 *)((u32)base + cnt);       /* pointer arith! */
+		sync ();
+		*addr = save[i--];
+		sync ();
+	}
+
+	return (size);
+}
+
 int dram_init(void)
 {
-	gd->ram_size = imx_ddr_size();
+	u32 max_size = imx_ddr_size();
+
+	gd->ram_size = get_ram_size_stride_test((u32 *) CONFIG_SYS_SDRAM_BASE,
+						(u32)max_size);
 
 	return 0;
 }

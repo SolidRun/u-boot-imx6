@@ -232,7 +232,7 @@ int board_mmc_init(bd_t *bis)
 		status = fsl_esdhc_initialize(bis, &usdhc2_cfg);
 	}
 
-	if (hb_cuboxi_ == 2) { /* HummingBoard 2 */
+	if (hb_cuboxi_ == 2 || ver_15_ == 1) { /* HummingBoard 2 */
 #if defined(CONFIG_MX6QDL)
 		MX6QDL_SET_PAD(PAD_SD3_CLK__USDHC3_CLK   , MUX_PAD_CTRL(USDHC_PAD_CTRL));
 		MX6QDL_SET_PAD(PAD_SD3_CMD__USDHC3_CMD   , MUX_PAD_CTRL(USDHC_PAD_CTRL));

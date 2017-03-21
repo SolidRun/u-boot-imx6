@@ -106,6 +106,17 @@
 #define CONFIG_FS_FAT
 #define CONFIG_CMD_FS_GENERIC
 
+#define CONFIG_CMD_SF
+#ifdef CONFIG_CMD_SF
+#define CONFIG_SPI_FLASH
+#define CONFIG_SPI_FLASH_SST
+#define CONFIG_MXC_SPI
+#define CONFIG_SF_DEFAULT_BUS  0
+#define CONFIG_SF_DEFAULT_CS   (0|(IMX_GPIO_NR(4, 24)<<8))
+#define CONFIG_SF_DEFAULT_SPEED 20000000
+#define CONFIG_SF_DEFAULT_MODE (SPI_MODE_0)
+#endif
+
 /* Ethernet Configuration */
 #define CONFIG_FEC_MXC
 #ifdef CONFIG_FEC_MXC

@@ -74,6 +74,9 @@ DECLARE_GLOBAL_DATA_PTR;
 #define ENET_PAD_CTRL_CLK  (PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | \
 	PAD_CTL_SRE_FAST)
 
+#define SPI_PAD_CTRL (PAD_CTL_HYS | PAD_CTL_SPEED_MED |         \
+	PAD_CTL_DSE_40ohm     | PAD_CTL_SRE_FAST)
+
 #define LED IMX_GPIO_NR(4, 29)
 
 int hb_cuboxi_ = 0; /* 2 is HummingBoard2, 1 is HummingBoard, 0 is CuBox-i */
@@ -254,6 +257,32 @@ int board_mmc_init(bd_t *bis)
 		status = fsl_esdhc_initialize(bis, &usdhc2_cfg);
 	}
 	return status;
+}
+#endif
+
+#ifdef CONFIG_MXC_SPI
+#if defined(CONFIG_MX6Q) || defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
+iomux_v3_cfg_t const ecspi3_pads[] = {
+	/* SS1 */
+	MX6_PAD_DISP0_DAT2__ECSPI3_MISO | MUX_PAD_CTRL(SPI_PAD_CTRL),
+	MX6_PAD_PAD_DISP0_DAT1__ECSPI3_MOSI | MUX_PAD_CTRL(SPI_PAD_CTRL),
+	MX6_PAD_DISP0_DAT0__ECSPI3_SCLK | MUX_PAD_CTRL(SPI_PAD_CTRL),
+	MX6_PAD_DISP0_DAT3__GPIO_4_24   | MUX_PAD_CTRL(SPI_PAD_CTRL),
+};
+#endif
+
+void setup_spi(void)
+{
+#if defined(CONFIG_MX6QDL)
+	MX6QDL_SET_PAD(PAD_DISP0_DAT2__ECSPI3_MISO , MUX_PAD_CTRL(SPI_PAD_CTRL));
+	MX6QDL_SET_PAD(PAD_DISP0_DAT1__ECSPI3_MOSI , MUX_PAD_CTRL(SPI_PAD_CTRL));
+	MX6QDL_SET_PAD(PAD_DISP0_DAT0__ECSPI3_SCLK , MUX_PAD_CTRL(SPI_PAD_CTRL));
+	MX6QDL_SET_PAD(PAD_DISP0_DAT3__GPIO_4_24   , MUX_PAD_CTRL(SPI_PAD_CTRL));
+#endif
+#if defined(CONFIG_MX6Q) || defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
+	imx_iomux_v3_setup_multiple_pads(ecspi3_pads,
+					 ARRAY_SIZE(ecspi3_pads));
+#endif
 }
 #endif
 
@@ -656,6 +685,11 @@ int board_init(void)
 	} else {
 		gd->bd->bi_arch_number = 4773; /* HummingBoard machine ID */
 	}
+
+#ifdef CONFIG_MXC_SPI
+	setup_spi();
+#endif
+
 #ifdef CONFIG_CMD_SATA
 	setup_sata();
 #endif

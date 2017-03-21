@@ -252,6 +252,10 @@ void spl_mmc_load_image(void)
 		if (spl_start_uboot() || mmc_load_image_raw_os(mmc))
 #endif
 		err = mmc_load_image_raw(mmc, CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR);
+#ifdef CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR_ALT
+		if (err)
+			err = mmc_load_image_raw(mmc, CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR_ALT);
+#endif
 		if (err) {
 			printf("spl: wrong MMC boot mode\n");
 			hang();

@@ -11,6 +11,7 @@ if [ "x$1" != "x" ]; then
 	VECTOR=$1
 else
 	VECTOR="c1solo c1dl c1d c1q cubox-i1 cubox-i2 cubox-i2ultra cubox-i4pro"
+	VECTOR="cubox-i1 cubox-i2 cubox-i2ultra cubox-i4pro"
 fi
 
 for i in $VECTOR; do

@@ -110,7 +110,7 @@ static u32 get_ram_size_stride_test(u32 *base, u32 maxsize)
 	}
 
 	/* Restore the data */
-	for (cnt = (maxsize - MEM_STRIDE); i > 0; cnt -= MEM_STRIDE) {
+	for (cnt -= MEM_STRIDE; i > 0; cnt -= MEM_STRIDE) {
 		addr = (volatile u32 *)((u32)base + cnt);       /* pointer arith! */
 		sync ();
 		*addr = save[--i];

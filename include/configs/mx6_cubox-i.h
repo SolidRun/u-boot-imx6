@@ -317,6 +317,7 @@
                 "run bootit;\0 "
 
 #define CONFIG_BOOTCOMMAND \
+	   "source 0x17f00000;" \
 	   "mmc dev ${mmcdev}; if mmc rescan; then " \
                "for prefix in ${boot_prefixes}; do " \
 		   "setenv file_prefix ${prefix}; " \

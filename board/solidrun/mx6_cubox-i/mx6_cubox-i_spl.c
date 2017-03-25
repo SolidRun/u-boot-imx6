@@ -88,8 +88,8 @@ enum boot_device get_boot_device(void) {
 
 static const char *build_dts_name(void)
 {
-	char *dt_prefix;
-	char *dt_suffix;
+	const char *dt_prefix, *dt_suffix;
+	static char dt_name[48];
 	int val1, val2, val3;
 
 	switch (spl_get_imx_type()){
@@ -119,11 +119,12 @@ static const char *build_dts_name(void)
 
 	/*
 	 * Machine selection -
-	 * Machine        val1, val2
-	 * -------------------------
-	 * HB rev 3.x     x     0
-	 * CBi            0     1
-	 * HB             1     1
+	 * Machine        val1, val2, val3
+	 * -------------------------------
+	 * HB2            x     x     0
+	 * HB rev 3.x     x     0     1
+	 * CBi            0     1     1
+	 * HB             1     1     1
 	 */
 
 	if (val3 == 0) {
@@ -136,7 +137,7 @@ static const char *build_dts_name(void)
 		dt_suffix = "-hummingboard.dtb";
 	}
 	
-	return strcat(dt_prefix, dt_suffix);
+	return strcat(strcpy(dt_name, dt_prefix), dt_suffix);
 }
 
 #include "asm/arch/mx6_ddr_regs.h"

@@ -75,7 +75,7 @@ DECLARE_GLOBAL_DATA_PTR;
 	PAD_CTL_SRE_FAST)
 
 #define SPI_PAD_CTRL (PAD_CTL_HYS | PAD_CTL_SPEED_MED |         \
-	PAD_CTL_DSE_40ohm     | PAD_CTL_SRE_FAST)
+	PAD_CTL_DSE_40ohm | PAD_CTL_SRE_FAST)
 
 #define LED IMX_GPIO_NR(4, 29)
 
@@ -253,9 +253,11 @@ int board_mmc_init(bd_t *bis)
 		usdhc3_cfg.sdhc_clk = mxc_get_clock(MXC_ESDHC3_CLK);
 		fsl_esdhc_initialize(bis, &usdhc3_cfg);
 	}
+
 	if (bt_mem_ctl == 0x6) {
 		status = fsl_esdhc_initialize(bis, &usdhc2_cfg);
 	}
+
 	return status;
 }
 #endif
@@ -277,12 +279,22 @@ void setup_spi(void)
 	MX6QDL_SET_PAD(PAD_DISP0_DAT2__ECSPI3_MISO , MUX_PAD_CTRL(SPI_PAD_CTRL));
 	MX6QDL_SET_PAD(PAD_DISP0_DAT1__ECSPI3_MOSI , MUX_PAD_CTRL(SPI_PAD_CTRL));
 	MX6QDL_SET_PAD(PAD_DISP0_DAT0__ECSPI3_SCLK , MUX_PAD_CTRL(SPI_PAD_CTRL));
-	MX6QDL_SET_PAD(PAD_DISP0_DAT3__GPIO_4_24   , MUX_PAD_CTRL(SPI_PAD_CTRL));
+	MX6QDL_SET_PAD(PAD_DISP0_DAT3__GPIO_4_24   , MUX_PAD_CTRL(NO_PAD_CTRL));
 #endif
 #if defined(CONFIG_MX6Q) || defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
 	imx_iomux_v3_setup_multiple_pads(ecspi3_pads,
 					 ARRAY_SIZE(ecspi3_pads));
 #endif
+
+	enable_spi_clk(true, 2);
+
+	gpio_direction_output(IMX_GPIO_NR(4, 24), 1);
+}
+
+int board_spi_cs_gpio(unsigned bus, unsigned cs)
+{
+       return (bus == CONFIG_SF_DEFAULT_BUS  && cs == CONFIG_SF_DEFAULT_CS)
+	       ? (IMX_GPIO_NR(4, 24)) : -1;
 }
 #endif
 

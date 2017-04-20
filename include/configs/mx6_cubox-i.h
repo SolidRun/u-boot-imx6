@@ -106,6 +106,8 @@
 #define CONFIG_FS_EXT4
 #define CONFIG_FS_FAT
 #define CONFIG_CMD_FS_GENERIC
+#define CONFIG_PARTITION_UUIDS
+#define CONFIG_CMD_PART
 
 #define CONFIG_CMD_SF
 #ifdef CONFIG_CMD_SF
@@ -396,6 +398,7 @@ extern char *config_sys_prompt;
 
 #define CONFIG_OF_LIBFDT
 #define CONFIG_CMD_BOOTZ
+#define CONFIG_SUPPORT_RAW_INITRD
 
 #ifndef CONFIG_SYS_DCACHE_OFF
 #define CONFIG_CMD_CACHE

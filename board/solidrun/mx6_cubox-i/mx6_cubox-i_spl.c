@@ -618,6 +618,9 @@ void spl_board_init(void)
 #ifdef CONFIG_CMD_SATA
 	setup_sata();
 #endif
+#ifdef CONFIG_CMD_SF
+	setup_spi();
+#endif
 
 #ifdef CONFIG_SPL_WATCHDOG_SUPPORT
 	hw_watchdog_init();
@@ -755,6 +758,9 @@ u32 spl_boot_device(void)
 	case MX6_SATA_BOOT:
 		printf("SATA\n");
 		return BOOT_DEVICE_SATA;
+	case MX6_SPI_NOR_BOOT:
+		printf("NOR\n");
+		return BOOT_DEVICE_NOR;
 	case MX6_UNKNOWN_BOOT:
 	default:
 		printf("UNKNOWN..\n");
@@ -772,6 +778,9 @@ u32 spl_boot_mode(void)
 		break;
 	case BOOT_DEVICE_SATA:
 		return SATA_MODE;
+		break;
+	case BOOT_DEVICE_NOR:
+		return NOR_MODE;
 		break;
 	//case BOOT_DEVICE_NAND:
 	//	return 0;

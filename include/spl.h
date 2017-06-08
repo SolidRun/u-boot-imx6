@@ -17,7 +17,7 @@
 #define MMCSD_MODE_FAT		2
 #define MMCSD_MODE		3
 #define SATA_MODE		4
- 
+#define NOR_MODE		5 
 
 
 struct spl_image_info {

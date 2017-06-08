@@ -20,6 +20,7 @@
 #define BOOT_DEVICE_MMC2_2	2
 #define BOOT_DEVICE_NAND	3
 #define BOOT_DEVICE_SATA	4
-#define BOOT_DEVICE_NONE	5
+#define BOOT_DEVICE_NOR		5
+#define BOOT_DEVICE_NONE	6
 
 #endif	/* __ASM_ARCH_SPL_H__ */

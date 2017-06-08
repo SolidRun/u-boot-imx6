@@ -179,14 +179,16 @@ end:
 
 static void spl_mmc_config(void)
 {
+#ifdef CONFIG_SPL_OS_BOOT
 	if (!spl_image.os_image)
 		spl_image.os_image = CONFIG_SPL_FAT_LOAD_KERNEL_NAME;
-	if (!spl_image.second_stage)
-		spl_image.second_stage = CONFIG_SPL_FAT_LOAD_PAYLOAD_NAME;
 	if (!spl_image.args)
 		spl_image.args = CONFIG_SPL_FAT_LOAD_ARGS_NAME;
 	if (!spl_image.args_addr)
 		spl_image.args_addr = CONFIG_SYS_SPL_ARGS_ADDR;
+#endif
+	if (!spl_image.second_stage)
+		spl_image.second_stage = CONFIG_SPL_FAT_LOAD_PAYLOAD_NAME;
 
 	debug("Config to be loaded:\nOS: %s\nSTAGE2: %s\nARGS: %s\nARGS_ADDR: 0x%x\n",
 			spl_image.os_image, spl_image.second_stage,

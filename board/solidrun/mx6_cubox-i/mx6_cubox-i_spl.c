@@ -12,6 +12,7 @@
 #ifdef CONFIG_SPL
 #include <spl.h>
 #include <libfdt.h>
+#include <watchdog.h>
 #endif
 #include <asm/arch/iomux.h>
 #include <asm/arch/mx6-pins.h>
@@ -617,6 +618,10 @@ void spl_board_init(void)
 #ifdef CONFIG_CMD_SATA
 	setup_sata();
 #endif
+
+#ifdef CONFIG_SPL_WATCHDOG_SUPPORT
+	hw_watchdog_init();
+#endif
 }
 
 #ifdef CONFIG_SPL_OS_BOOT
@@ -777,9 +782,11 @@ u32 spl_boot_mode(void)
 	}
 }
 
+#ifndef CONFIG_IMX_WATCHDOG
 void reset_cpu(ulong addr)
 {
 	__REG16(WDOG1_BASE_ADDR) = 4;
 }
+#endif
 #endif
 

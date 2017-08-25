@@ -74,18 +74,63 @@ DECLARE_GLOBAL_DATA_PTR;
 #define ENET_PAD_CTRL_CLK  (PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | \
 	PAD_CTL_SRE_FAST)
 
+#define SPI_PAD_CTRL (PAD_CTL_HYS | PAD_CTL_SPEED_MED |         \
+	PAD_CTL_DSE_40ohm     | PAD_CTL_SRE_FAST)
+
 #define LED IMX_GPIO_NR(4, 29)
 
 int hb_cuboxi_ = 0; /* 2 is HummingBoard2, 1 is HummingBoard, 0 is CuBox-i */
+int ver_15_ = 0; /* 0 is original som, 1 is the rev 1.5 */
+
+#define MEM_STRIDE 0x4000000
+static u32 get_ram_size_stride_test(u32 *base, u32 maxsize)
+{
+	volatile u32 *addr;
+	u32	  save[64];
+	u32	  cnt;
+	u32	  size;
+	int	  i = 0;
+
+	/* First save the data */
+	for (cnt = 0; cnt < maxsize; cnt += MEM_STRIDE) {
+		addr = (volatile u32 *)((u32)base + cnt);       /* pointer arith! */
+		sync ();
+		save[i++] = *addr;
+		sync ();
+	}
+
+	/* First write a signature */
+	* (volatile u32 *)base = 0x12345678;
+	for (size = MEM_STRIDE; size < maxsize; size += MEM_STRIDE) {
+		* (volatile u32 *)((u32)base + size) = size;
+		sync ();
+		if (* (volatile u32 *)((u32)base) == size) {    /* We reached the overlapping address */
+			break;
+		}
+	}
+
+	/* Restore the data */
+	for (cnt = (maxsize - MEM_STRIDE); i > 0; cnt -= MEM_STRIDE) {
+		addr = (volatile u32 *)((u32)base + cnt);       /* pointer arith! */
+		sync ();
+		*addr = save[--i];
+		sync ();
+	}
+
+	return (size);
+}
 
 int dram_init(void)
 {
-	gd->ram_size = imx_ddr_size();
+	u32 max_size = imx_ddr_size();
+
+	gd->ram_size = get_ram_size_stride_test((u32 *) CONFIG_SYS_SDRAM_BASE,
+						(u32)max_size);
 
 	return 0;
 }
 
-#if defined(CONFIG_MX6Q) || defined(CONFIG_MX6DL)
+#if defined(CONFIG_MX6Q) || defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
 iomux_v3_cfg_t const uart1_pads[] = {
 	MX6_PAD_CSI0_DAT10__UART1_TXD | MUX_PAD_CTRL(UART_PAD_CTRL),
 	MX6_PAD_CSI0_DAT11__UART1_RXD | MUX_PAD_CTRL(UART_PAD_CTRL),
@@ -105,13 +150,29 @@ iomux_v3_cfg_t const hb_cbi_sense[] = {
 	/* Following is only for sensing if it's CuBox-i or HummingBoard */
 	MX6_PAD_KEY_ROW1__GPIO_4_9      | MUX_PAD_CTRL(UART_PAD_CTRL),
 	MX6_PAD_EIM_DA4__GPIO_3_4       | MUX_PAD_CTRL(UART_PAD_CTRL),
-	PAD_SD4_DAT0__GPIO_2_8		| MUX_PAD_CTRL(UART_PAD_CTRL),
+	MX6_PAD_SD4_DAT0__GPIO_2_8	| MUX_PAD_CTRL(UART_PAD_CTRL),
+	MX6_PAD_CSI0_DAT14__GPIO_6_0	| MUX_PAD_CTRL(UART_PAD_CTRL),
+	MX6_PAD_CSI0_DAT18__GPIO_6_4	| MUX_PAD_CTRL(UART_PAD_CTRL),
+};
+
+iomux_v3_cfg_t const usdhc3_pads[] = {
+	MX6_PAD_SD3_CLK__USDHC3_CLK	| MUX_PAD_CTRL(USDHC_PAD_CLK_CTRL),
+	MX6_PAD_SD3_CMD__USDHC3_CMD	| MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	MX6_PAD_SD3_DAT0__USDHC3_DAT0	| MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	MX6_PAD_SD3_DAT1__USDHC3_DAT1	| MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	MX6_PAD_SD3_DAT2__USDHC3_DAT2	| MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	MX6_PAD_SD3_DAT3__USDHC3_DAT3	| MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	MX6_PAD_SD3_DAT4__USDHC3_DAT4	| MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	MX6_PAD_SD3_DAT5__USDHC3_DAT5	| MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	MX6_PAD_SD3_DAT6__USDHC3_DAT6	| MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	MX6_PAD_SD3_DAT7__USDHC3_DAT7	| MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	MX6_PAD_SD3_RST__USDHC3_RST	| MUX_PAD_CTRL(USDHC_PAD_CTRL),
 };
 #endif
 
 static void setup_iomux_uart(void)
 {
-#if defined(CONFIG_MX6Q) || defined(CONFIG_MX6DL)
+#if defined(CONFIG_MX6Q) || defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
 	imx_iomux_v3_setup_multiple_pads(uart1_pads, ARRAY_SIZE(uart1_pads));
 #endif
 #if defined(CONFIG_MX6QDL)
@@ -150,7 +211,7 @@ int board_mmc_init(bd_t *bis)
 	uint bt_mem_ctl = (soc_sbmr & 0x000000FF) >> 4 ;
 	usdhc2_cfg.sdhc_clk = mxc_get_clock(MXC_ESDHC2_CLK);
 	usdhc2_cfg.max_bus_width = 4;
-#if defined(CONFIG_MX6Q) || defined(CONFIG_MX6DL)
+#if defined(CONFIG_MX6Q) || defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
         imx_iomux_v3_setup_multiple_pads(usdhc2_pads, ARRAY_SIZE(usdhc2_pads));
 #endif
 #if defined(CONFIG_MX6QDL)
@@ -171,7 +232,8 @@ int board_mmc_init(bd_t *bis)
 		status = fsl_esdhc_initialize(bis, &usdhc2_cfg);
 	}
 
-	if (hb_cuboxi_ == 2) { /* HummingBoard 2 */
+	if (hb_cuboxi_ == 2 || ver_15_ == 1) { /* HummingBoard 2 */
+#if defined(CONFIG_MX6QDL)
 		MX6QDL_SET_PAD(PAD_SD3_CLK__USDHC3_CLK   , MUX_PAD_CTRL(USDHC_PAD_CTRL));
 		MX6QDL_SET_PAD(PAD_SD3_CMD__USDHC3_CMD   , MUX_PAD_CTRL(USDHC_PAD_CTRL));
 		MX6QDL_SET_PAD(PAD_SD3_DAT0__USDHC3_DAT0 , MUX_PAD_CTRL(USDHC_PAD_CTRL));
@@ -183,6 +245,10 @@ int board_mmc_init(bd_t *bis)
 		MX6QDL_SET_PAD(PAD_SD3_DAT6__USDHC3_DAT6 , MUX_PAD_CTRL(USDHC_PAD_CTRL));
 		MX6QDL_SET_PAD(PAD_SD3_DAT7__USDHC3_DAT7 , MUX_PAD_CTRL(USDHC_PAD_CTRL));
 		MX6QDL_SET_PAD(PAD_SD3_RST__USDHC3_RST , MUX_PAD_CTRL(USDHC_PAD_CTRL));
+#endif
+#if defined(CONFIG_MX6Q) || defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
+		imx_iomux_v3_setup_multiple_pads(usdhc3_pads, ARRAY_SIZE(usdhc3_pads));
+#endif
 		usdhc3_cfg.max_bus_width = 8;
 		usdhc3_cfg.sdhc_clk = mxc_get_clock(MXC_ESDHC3_CLK);
 		fsl_esdhc_initialize(bis, &usdhc3_cfg);
@@ -194,8 +260,34 @@ int board_mmc_init(bd_t *bis)
 }
 #endif
 
+#ifdef CONFIG_MXC_SPI
+#if defined(CONFIG_MX6Q) || defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
+iomux_v3_cfg_t const ecspi3_pads[] = {
+	/* SS1 */
+	MX6_PAD_DISP0_DAT2__ECSPI3_MISO | MUX_PAD_CTRL(SPI_PAD_CTRL),
+	MX6_PAD_DISP0_DAT1__ECSPI3_MOSI | MUX_PAD_CTRL(SPI_PAD_CTRL),
+	MX6_PAD_DISP0_DAT0__ECSPI3_SCLK | MUX_PAD_CTRL(SPI_PAD_CTRL),
+	MX6_PAD_DISP0_DAT3__GPIO_4_24   | MUX_PAD_CTRL(SPI_PAD_CTRL),
+};
+#endif
+
+void setup_spi(void)
+{
+#if defined(CONFIG_MX6QDL)
+	MX6QDL_SET_PAD(PAD_DISP0_DAT2__ECSPI3_MISO , MUX_PAD_CTRL(SPI_PAD_CTRL));
+	MX6QDL_SET_PAD(PAD_DISP0_DAT1__ECSPI3_MOSI , MUX_PAD_CTRL(SPI_PAD_CTRL));
+	MX6QDL_SET_PAD(PAD_DISP0_DAT0__ECSPI3_SCLK , MUX_PAD_CTRL(SPI_PAD_CTRL));
+	MX6QDL_SET_PAD(PAD_DISP0_DAT3__GPIO_4_24   , MUX_PAD_CTRL(SPI_PAD_CTRL));
+#endif
+#if defined(CONFIG_MX6Q) || defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
+	imx_iomux_v3_setup_multiple_pads(ecspi3_pads,
+					 ARRAY_SIZE(ecspi3_pads));
+#endif
+}
+#endif
+
 #ifdef CONFIG_FEC_MXC
-#if defined(CONFIG_MX6Q) || defined(CONFIG_MX6DL)
+#if defined(CONFIG_MX6Q) || defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
 iomux_v3_cfg_t const enet_pads[] = {
 	MX6_PAD_ENET_MDIO__ENET_MDIO		| MUX_PAD_CTRL(ENET_PAD_CTRL_OD),
 	MX6_PAD_ENET_MDC__ENET_MDC		| MUX_PAD_CTRL(ENET_PAD_CTRL),		
@@ -224,7 +316,7 @@ iomux_v3_cfg_t const enet_pads[] = {
 
 static void setup_iomux_enet(void)
 {
-#if defined(CONFIG_MX6Q) || defined(CONFIG_MX6DL)
+#if defined(CONFIG_MX6Q) || defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
 	imx_iomux_v3_setup_multiple_pads(enet_pads, ARRAY_SIZE(enet_pads));
 #endif
 #if defined(CONFIG_MX6QDL)
@@ -441,7 +533,7 @@ static void setup_display(void)
 #ifdef CONFIG_USB_EHCI_MX6
 #define USB_OTG_EN IMX_GPIO_NR(3, 22)
 #define USB_H1_EN IMX_GPIO_NR(1, 0)
-#if defined(CONFIG_MX6Q) || defined(CONFIG_MX6DL)
+#if defined(CONFIG_MX6Q) || defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
 iomux_v3_cfg_t const usb_en_pads[] = {
 	MX6_PAD_EIM_D22__GPIO_3_22 | MUX_PAD_CTRL(UART_PAD_CTRL),
 	MX6_PAD_GPIO_0__GPIO_1_0 | MUX_PAD_CTRL(UART_PAD_CTRL),
@@ -463,22 +555,28 @@ char config_sys_prompt_hummingboard2[] = "HummingBoard2 U-Boot > ";
 char *config_sys_prompt = config_sys_prompt_cuboxi;
 static void detect_board(void)
 {
-	int val1,val2,val3;
-#if defined(CONFIG_MX6Q) || defined(CONFIG_MX6DL)
+	int val1,val2,val3,val4,val5;
+#if defined(CONFIG_MX6Q) || defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
 	imx_iomux_v3_setup_multiple_pads(hb_cbi_sense, ARRAY_SIZE(hb_cbi_sense));
 #endif
 #if defined(CONFIG_MX6QDL)
 	MX6QDL_SET_PAD(PAD_KEY_ROW1__GPIO_4_9, MUX_PAD_CTRL(UART_PAD_CTRL));
 	MX6QDL_SET_PAD(PAD_EIM_DA4__GPIO_3_4, MUX_PAD_CTRL(UART_PAD_CTRL));
 	MX6QDL_SET_PAD(PAD_SD4_DAT0__GPIO_2_8, MUX_PAD_CTRL(UART_PAD_CTRL));
+	MX6QDL_SET_PAD(PAD_CSI0_DAT14__GPIO_6_0, MUX_PAD_CTRL(UART_PAD_CTRL));
+	MX6QDL_SET_PAD(PAD_CSI0_DAT18__GPIO_6_4, MUX_PAD_CTRL(UART_PAD_CTRL));
 #endif
 	gpio_direction_input(IMX_GPIO_NR(4, 9));
 	gpio_direction_input(IMX_GPIO_NR(3, 4));
 	gpio_direction_input(IMX_GPIO_NR(2, 8));
+	gpio_direction_input(IMX_GPIO_NR(6, 0));
+	gpio_direction_input(IMX_GPIO_NR(6, 4));
 
 	val1 = gpio_get_value(IMX_GPIO_NR(4, 9));
 	val2 = gpio_get_value(IMX_GPIO_NR(3, 4));
 	val3 = gpio_get_value(IMX_GPIO_NR(2, 8));
+	val4 = gpio_get_value(IMX_GPIO_NR(6, 0));
+	val5 = gpio_get_value(IMX_GPIO_NR(6, 4));
 
 	/*
 	 * Machine selection -
@@ -503,6 +601,12 @@ static void detect_board(void)
 		hb_cuboxi_ = 1;
 		config_sys_prompt = config_sys_prompt_hummingboard;
 	}
+
+	if (val4 == 1 && val5 == 0) {
+		ver_15_ = 1;
+	} else {
+		ver_15_ = 0;
+	}
 }
 
 int board_early_init_f(void)
@@ -515,7 +619,7 @@ int board_early_init_f(void)
 	return 0;
 }
 
-#if defined(CONFIG_MX6Q) || defined(CONFIG_MX6DL)
+#if defined(CONFIG_MX6Q) || defined(CONFIG_MX6DL) || defined(CONFIG_MX6S)
 iomux_v3_cfg_t const led_pads[] = {
 	MX6_PAD_DISP0_DAT8__GPIO_4_29 | MUX_PAD_CTRL(UART_PAD_CTRL),
 };
@@ -581,6 +685,11 @@ int board_init(void)
 	} else {
 		gd->bd->bi_arch_number = 4773; /* HummingBoard machine ID */
 	}
+
+#ifdef CONFIG_MXC_SPI
+	setup_spi();
+#endif
+
 #ifdef CONFIG_CMD_SATA
 	setup_sata();
 #endif
@@ -589,6 +698,7 @@ int board_init(void)
 }
 
 static char const *board_type = "uninitialized";
+static char const *som_rev = "";
 
 int checkboard(void)
 {
@@ -601,6 +711,10 @@ int checkboard(void)
 	} else {
 		puts("Board: MX6-HummingBoard2\n");
 		board_type = "mx6-hummingboard2";
+	}
+
+	if (ver_15_ == 1) {
+		som_rev = "-som-v15";
 	}
 	return 0;
 }
@@ -618,6 +732,7 @@ int board_late_init(void)
         int cpurev = get_cpu_rev();
         setenv("cpu",get_imx_type((cpurev & 0xFF000) >> 12));
         setenv("board",board_type);
+        setenv("somrev",som_rev);
 
 #ifdef CONFIG_CMD_BMODE
         add_board_boot_modes(board_boot_modes);

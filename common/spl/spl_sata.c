@@ -196,6 +196,10 @@ void spl_sata_load_image(void)
 	if (err) {
 		printf("Load image from RAW...\n");
 		err = sata_load_image_raw(CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR);
+#ifdef CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR_ALT
+		if (err)
+			err = sata_load_image_raw(CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR_ALT);
+#endif
 		if (err) {
 			printf("spl: wrong SATA boot mode\n");
 			hang();

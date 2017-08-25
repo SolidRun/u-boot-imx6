@@ -22,7 +22,6 @@ struct watchdog_regs {
 #define WCR_WDW		0x80
 #define SET_WCR_WT(x)	(x << 8)
 
-#ifdef CONFIG_IMX_WATCHDOG
 void hw_watchdog_reset(void)
 {
 	struct watchdog_regs *wdog = (struct watchdog_regs *)WDOG1_BASE_ADDR;
@@ -31,9 +30,11 @@ void hw_watchdog_reset(void)
 	writew(0xaaaa, &wdog->wsr);
 }
 
+#ifdef CONFIG_IMX_WATCHDOG
 void hw_watchdog_init(void)
 {
 	struct watchdog_regs *wdog = (struct watchdog_regs *)WDOG1_BASE_ADDR;
+	u16 val = readw(&wdog->wcr);
 	u16 timeout;
 
 	/*
@@ -45,22 +46,31 @@ void hw_watchdog_init(void)
 #define CONFIG_WATCHDOG_TIMEOUT_MSECS 128000
 #endif
 	timeout = (CONFIG_WATCHDOG_TIMEOUT_MSECS / 500) - 1;
-	writew(WCR_WDZST | WCR_WDBG | WCR_WDE | WCR_WDT |
-		WCR_WDW | SET_WCR_WT(timeout), &wdog->wcr);
+	val |= WCR_WDZST;
+	val &= ~(0xFF << 8);
+	val &= ~WCR_WDE;
+	val &= ~WCR_WDT;
+	val |= SET_WCR_WT(timeout);
+	writew(val, &wdog->wcr);
+
+	val |= WCR_WDE;
+	writew(val, &wdog->wcr);
+
 	hw_watchdog_reset();
 }
 #endif
 
+#ifndef CONFIG_SPL_BUILD
 void reset_cpu(ulong addr)
 {
 	struct watchdog_regs *wdog = (struct watchdog_regs *)WDOG1_BASE_ADDR;
 
 	writew(WCR_WDE, &wdog->wcr);
-	writew(0x5555, &wdog->wsr);
-	writew(0xaaaa, &wdog->wsr);	/* load minimum 1/2 second timeout */
+	hw_watchdog_reset();
 	while (1) {
 		/*
 		 * spin for .5 seconds before reset
 		 */
 	}
 }
+#endif

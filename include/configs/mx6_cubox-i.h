@@ -35,10 +35,16 @@
 #define CONFIG_BOARD_EARLY_INIT_F
 #define CONFIG_BOARD_LATE_INIT
 #define CONFIG_MXC_GPIO
+#define CONFIG_CMD_GPIO
 
 #define CONFIG_CMD_FUSE
 #ifdef CONFIG_CMD_FUSE
 #define CONFIG_MXC_OCOTP
+#endif
+
+#ifdef CONFIG_HW_WATCHDOG
+#define CONFIG_IMX_WATCHDOG
+#define CONFIG_WATCHDOG_TIMEOUT_MSECS	30000
 #endif
 
 #define CONFIG_MXC_UART
@@ -65,7 +71,9 @@
 #define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_MEMTEST_START + 500 * SZ_1M)
 
 #define CONFIG_LOADADDR			0x10800000
-/*#define CONFIG_SYS_TEXT_BASE		0x17800000*/
+#ifndef CONFIG_SYS_TEXT_BASE
+#define CONFIG_SYS_TEXT_BASE		0x17800000 /* Used in NON SPL version */
+#endif
 
 #define CONFIG_SYS_L2_PL310
 
@@ -97,6 +105,17 @@
 #define CONFIG_FS_EXT4
 #define CONFIG_FS_FAT
 #define CONFIG_CMD_FS_GENERIC
+
+#define CONFIG_CMD_SF
+#ifdef CONFIG_CMD_SF
+#define CONFIG_SPI_FLASH
+#define CONFIG_SPI_FLASH_SST
+#define CONFIG_MXC_SPI
+#define CONFIG_SF_DEFAULT_BUS  0
+#define CONFIG_SF_DEFAULT_CS   (0|(IMX_GPIO_NR(4, 24)<<8))
+#define CONFIG_SF_DEFAULT_SPEED 20000000
+#define CONFIG_SF_DEFAULT_MODE (SPI_MODE_0)
+#endif
 
 /* Ethernet Configuration */
 #define CONFIG_FEC_MXC
@@ -212,11 +231,11 @@
                         "setenv fdt_prefix imx6q; " \
                 "fi; " \
                 "if test ${board} = mx6-cubox-i; then " \
-                        "setenv fdt_file ${fdt_prefix}-cubox-i.dtb; " \
+                        "setenv fdt_file ${fdt_prefix}-cubox-i${somrev}.dtb; " \
                 "elif test ${board} = mx6-hummingboard; then " \
-                        "setenv fdt_file ${fdt_prefix}-hummingboard.dtb; " \
+                        "setenv fdt_file ${fdt_prefix}-hummingboard${somrev}.dtb; " \
                 "else " \
-                        "setenv fdt_file ${fdt_prefix}-hummingboard2.dtb; " \
+                        "setenv fdt_file ${fdt_prefix}-hummingboard2${somrev}.dtb; " \
                 "fi;\0" \
         "loadbootenv=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${file_prefix}${bootenv};\0" \
         "loadfdt=if test ${boottype} = mmc; then " \
@@ -298,6 +317,7 @@
                 "run bootit;\0 "
 
 #define CONFIG_BOOTCOMMAND \
+	   "source 0x17f00000;" \
 	   "mmc dev ${mmcdev}; if mmc rescan; then " \
                "for prefix in ${boot_prefixes}; do " \
 		   "setenv file_prefix ${prefix}; " \
